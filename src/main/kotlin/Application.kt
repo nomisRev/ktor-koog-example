@@ -42,7 +42,6 @@ fun main() {
     }.start(wait = true)
 }
 
-
 suspend fun Application.module(executor: MultiLLMPromptExecutor) {
     val googleMaps = mcpGoogleMaps()
     val weather = ToolRegistry { tools(WeatherTool(httpClient()).asTools()) }
@@ -61,7 +60,7 @@ suspend fun Application.module(executor: MultiLLMPromptExecutor) {
     }
 }
 
-fun executor(apiKey: String): MultiLLMPromptExecutor {
+private fun executor(apiKey: String): MultiLLMPromptExecutor {
     val openAIClient = OpenAILLMClient(apiKey)
     val ollama = OllamaClient()
     return MultiLLMPromptExecutor(LLMProvider.OpenAI to openAIClient, LLMProvider.Ollama to ollama)

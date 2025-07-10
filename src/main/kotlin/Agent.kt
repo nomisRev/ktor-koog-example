@@ -1,10 +1,14 @@
 package com.example
 
 import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.agents.core.agent.singleRunStrategy
 import ai.koog.agents.core.tools.*
 import ai.koog.agents.features.eventHandler.feature.EventHandler
+import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.*
 import ai.koog.prompt.executor.llms.*
+import ai.koog.prompt.markdown.markdown
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -27,11 +31,29 @@ suspend fun agent(
     event: suspend (event: AgentEvent) -> Unit
 ) {
     val agent = AIAgent(
-        executor = executor,
-        systemPrompt = "You're an AI assistant that helps developers with Kotlin development." +
-                "You use the tools at your disposal to get accurate up-to-date information, and answer my questions.",
-        llmModel = OpenAIModels.CostOptimized.GPT4oMini,
+        promptExecutor = executor,
+        strategy = singleRunStrategy(),
         toolRegistry = allTools,
+        agentConfig = AIAgentConfig(
+            prompt = prompt("travel-assistant-agent") {
+                system(markdown {
+                    +"You're an expert travel assistant helping users reach their destination in a reliable way."
+                    newline()
+                    +"You have the following tools available to you:"
+                    bulleted {
+                        for (tool in allTools.tools) {
+                            item(tool.name)
+                        }
+                    }
+                    newline()
+                    header(1, "Task description:")
+                    +"You can only call tools. Figure out the accurate information from calling the google-maps tool, and the weather tool."
+                    +"DO NOT STOP UNTIL YOU'VE FOUND ALL THE ANSWERS!"
+                })
+            },
+            model = OpenAIModels.Reasoning.GPT4oMini,
+            maxAgentIterations = 100
+        ),
     ) {
         install(EventHandler) {
             onToolCall { tool, _ -> event(AgentEvent.ToolCall(tool.name)) }
@@ -47,9 +69,5 @@ suspend fun agent(
         }
     }
 
-    agent.run {
-        +question
-        +"You can only call tools. Figure out the accurate information from calling the google-maps tool, and the weather tool."
-        +"DO NOT STOP UNTIL YOU'VE FOUND ALL THE ANSWERS!"
-    }
+    agent.run(question)
 }

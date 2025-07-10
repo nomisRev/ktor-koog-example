@@ -1,0 +1,3 @@
+### Ask the locally running agent instance a question
+GET http://localhost:8080/plan?question="I need to travel from Copenhagen to Berlin. How can I travel? What clothes should I bring if I leave tomorrow?"
+Accept: text/event-stream

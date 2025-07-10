@@ -1,0 +1,4 @@
+app:
+  apiKey: "$OPENAI_API_KEY:"
+  host: 0.0.0.0
+  port: 8080

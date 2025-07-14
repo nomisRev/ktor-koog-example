@@ -19,15 +19,6 @@ suspend fun AgentConfig.agent(
     event: suspend (event: AgentEvent) -> Unit
 ) {
     AIAgent(
-        executor = executor,
-        llmModel = OpenAIModels.CostOptimized.GPT4oMini
-    ) {
-        install(Tracing) {
-            addMessageProcessor(TraceFeatureMessageLogWriter(logger))
-        }
-    }
-
-    AIAgent(
         promptExecutor = executor,
         strategy = singleRunStrategy(),
         toolRegistry = registry,

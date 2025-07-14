@@ -15,6 +15,7 @@ import com.example.agent.AgentEvent.MapsToolResult
 import com.example.agent.AgentEvent.WeatherToolCall
 import com.example.agent.AgentEvent.WeatherToolFailureResult
 import com.example.agent.AgentEvent.WeatherToolSuccessResult
+import com.example.agent.WeatherTool.WeatherToolResult
 import kotlinx.serialization.json.JsonObject
 
 fun AIAgent.FeatureContext.eventHandler(handler: suspend (AgentEvent) -> Unit) {
@@ -55,25 +56,32 @@ suspend fun onToolCallResult(
     handler: suspend (AgentEvent) -> Unit
 ) {
     val event = when {
-        tool.name == "getWeather" -> {
-            when (result) {
-                is WeatherTool.CurrentWeather -> WeatherToolSuccessResult(
-                    name = tool.name,
-                    longitude = toolArgs.longitude(),
-                    latitude = toolArgs.latitude(),
-                    currentWeather = result
-                )
+        tool.name == "getWeather" -> when (result) {
+            is ToolFromCallable.Result -> when (val toolResult = result.result) {
+                is WeatherToolResult -> when (toolResult) {
+                    is WeatherTool.CurrentWeather -> WeatherToolSuccessResult(
+                        name = tool.name,
+                        longitude = toolArgs.longitude(),
+                        latitude = toolArgs.latitude(),
+                        currentWeather = toolResult
+                    )
 
-                is WeatherTool.Text -> WeatherToolFailureResult(
-                    name = tool.name, longitude = toolArgs.longitude(),
-                    latitude = toolArgs.latitude(), result = result.text
-                )
+                    is WeatherTool.Text -> WeatherToolFailureResult(
+                        name = tool.name, longitude = toolArgs.longitude(),
+                        latitude = toolArgs.latitude(), result = toolResult.text,
+                    )
+                }
 
                 else -> WeatherToolFailureResult(
                     name = tool.name, longitude = toolArgs.longitude(),
-                    latitude = toolArgs.latitude(), result = "No result"
+                    latitude = toolArgs.latitude(), result = result.toStringDefault()
                 )
             }
+
+            else -> WeatherToolFailureResult(
+                name = tool.name, longitude = toolArgs.longitude(),
+                latitude = toolArgs.latitude(), result = result?.toStringDefault() ?: "Unknown error"
+            )
         }
 
         tool.name.startsWith("maps_") -> MapsToolResult(name = tool.name, result = result?.toStringDefault())

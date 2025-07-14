@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.1.10"
-    kotlin("plugin.serialization") version "2.1.10"
+    kotlin("jvm") version "2.2.0"
+    kotlin("plugin.serialization") version "2.2.0"
     id("io.ktor.plugin") version "3.2.0"
 }
 
@@ -19,10 +19,13 @@ dependencies {
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.sse)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.9.0")
     implementation("ch.qos.logback:logback-classic:1.4.14")
     implementation("org.testcontainers:testcontainers:1.21.3")
 }
 
 kotlin {
     jvmToolchain(17)
+    compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
+    compilerOptions.freeCompilerArgs.add("-Xannotation-default-target=param-property")
 }

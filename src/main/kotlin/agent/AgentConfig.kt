@@ -9,7 +9,7 @@ import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.executor.ollama.client.OllamaClient
 import ai.koog.prompt.llm.LLMProvider
 import com.example.AppConfig
-import com.example.WeatherTool
+import com.example.agent.WeatherTool
 import com.example.toToolRegistry
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO

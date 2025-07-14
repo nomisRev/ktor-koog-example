@@ -4,14 +4,12 @@ import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.singleRunStrategy
 import ai.koog.agents.core.tools.*
-import ai.koog.agents.features.eventHandler.feature.EventHandler
 import ai.koog.agents.features.tracing.feature.Tracing
 import ai.koog.agents.features.tracing.writer.TraceFeatureMessageLogWriter
 import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.*
 import ai.koog.prompt.markdown.markdown
-import com.example.agent.AgentEvent.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -20,6 +18,15 @@ suspend fun AgentConfig.agent(
     question: String,
     event: suspend (event: AgentEvent) -> Unit
 ) {
+    AIAgent(
+        executor = executor,
+        llmModel = OpenAIModels.CostOptimized.GPT4oMini
+    ) {
+        install(Tracing) {
+            addMessageProcessor(TraceFeatureMessageLogWriter(logger))
+        }
+    }
+
     AIAgent(
         promptExecutor = executor,
         strategy = singleRunStrategy(),
@@ -53,27 +60,3 @@ private fun system(allTools: ToolRegistry): Prompt = prompt("travel-assistant-ag
         +"DO NOT STOP UNTIL YOU'VE FOUND ALL THE ANSWERS!"
     })
 }
-
-fun AIAgent.FeatureContext.eventHandler(handler: suspend (AgentEvent) -> Unit) {
-    install(EventHandler) {
-        onToolCall { tool, args -> onToolCalled(tool, args, handler) }
-        onToolCallResult { tool, args, result -> onToolCallResult(tool, args, result, handler) }
-        onAgentFinished { name, result -> onAgentFinished(name, result, handler) }
-    }
-}
-
-suspend fun onToolCalled(
-    tool: Tool<*, *>,
-    toolArgs: Tool.Args,
-    handler: suspend (AgentEvent) -> Unit
-): Unit = handler(ToolCall(tool.name))
-
-suspend fun onToolCallResult(
-    tool: Tool<*, *>,
-    toolArgs: Tool.Args,
-    result: ToolResult?,
-    handler: suspend (AgentEvent) -> Unit
-): Unit = handler(ToolCallResult(tool.name, result))
-
-suspend fun onAgentFinished(name: String, result: String?, handler: suspend (AgentEvent) -> Unit): Unit =
-    handler(AgentFinished(name, result))

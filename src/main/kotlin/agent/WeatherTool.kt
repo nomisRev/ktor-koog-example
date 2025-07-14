@@ -1,4 +1,4 @@
-package com.example
+package com.example.agent
 
 import ai.koog.agents.core.tools.ToolResult
 import ai.koog.agents.core.tools.annotations.LLMDescription
@@ -8,9 +8,9 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 class WeatherTool(
     private val client: HttpClient,
@@ -24,7 +24,7 @@ class WeatherTool(
         latitude: Double,
         @LLMDescription("The longitude of the location.")
         longitude: Double
-    ): ToolResult = try {
+    ): WeatherToolResult = try {
         println("Fetching weather for Lat: $latitude, Lon: $longitude...")
         client.get(apiUrl) {
             parameter("latitude", latitude)
@@ -35,7 +35,7 @@ class WeatherTool(
     } catch (e: Exception) {
         println("An error occurred with the API request: ${e.message}")
         val message = "An error occurred with the API request: ${e.message}"
-        ToolResult.Text(message)
+        Text(message)
     }
 
     @LLMDescription("The response from the Open-Meteo API.")
@@ -48,6 +48,14 @@ class WeatherTool(
         @LLMDescription("The current weather for the location.")
         @SerialName("current_weather") val currentWeather: CurrentWeather
     )
+
+    @Serializable
+    sealed interface WeatherToolResult : ToolResult {
+        override fun toStringDefault(): String = when (this) {
+            is CurrentWeather -> Json.encodeToString(CurrentWeather.serializer(), this)
+            is Text -> text
+        }
+    }
 
     @LLMDescription("The current weather for a given location.")
     @Serializable
@@ -62,7 +70,8 @@ class WeatherTool(
         val weathercode: Int,
         @LLMDescription("The time of the forecast in ISO 8601 format.")
         val time: String
-    ) : ToolResult.JSONSerializable<CurrentWeather> {
-        override fun getSerializer(): KSerializer<CurrentWeather> = serializer()
-    }
+    ) : WeatherToolResult
+
+    @Serializable
+    data class Text(val text: String) : WeatherToolResult
 }

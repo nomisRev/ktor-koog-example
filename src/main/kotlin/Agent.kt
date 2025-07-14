@@ -9,6 +9,9 @@ import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.*
 import ai.koog.prompt.executor.llms.*
 import ai.koog.prompt.markdown.markdown
+import com.example.AgentEvent.AgentFinished
+import com.example.AgentEvent.ToolCall
+import com.example.AgentEvent.ToolCallResult
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -18,7 +21,9 @@ sealed interface AgentEvent {
     data class ToolCall(val name: String) : AgentEvent
 
     @Serializable
-    data class ToolCallResult(val name: String, val result: String?) : AgentEvent
+    data class ToolCallResult(val name: String, val result: String?) : AgentEvent {
+        constructor(name: String, result: ToolResult?) : this(name, result?.toStringDefault())
+    }
 
     @Serializable
     data class AgentFinished(val name: String, val result: String?) : AgentEvent
@@ -30,7 +35,7 @@ suspend fun agent(
     question: String,
     event: suspend (event: AgentEvent) -> Unit
 ) {
-    val agent = AIAgent(
+    AIAgent(
         promptExecutor = executor,
         strategy = singleRunStrategy(),
         toolRegistry = allTools,
@@ -55,19 +60,14 @@ suspend fun agent(
             maxAgentIterations = 100
         ),
     ) {
-        install(EventHandler) {
-            onToolCall { tool, _ -> event(AgentEvent.ToolCall(tool.name)) }
-            onToolCallResult { tool, args, result ->
-                event(
-                    AgentEvent.ToolCallResult(
-                        tool.name,
-                        result?.toStringDefault()
-                    )
-                )
-            }
-            onAgentFinished { name, result -> event(AgentEvent.AgentFinished(name, result)) }
-        }
-    }
+        eventHandler(event)
+    }.run(question)
+}
 
-    agent.run(question)
+fun AIAgent.FeatureContext.eventHandler(handler: suspend (AgentEvent) -> Unit) {
+    install(EventHandler) {
+        onToolCall { tool, _ -> handler(ToolCall(tool.name)) }
+        onToolCallResult { tool, _, result -> handler(ToolCallResult(tool.name, result)) }
+        onAgentFinished { name, result -> handler(AgentFinished(name, result)) }
+    }
 }

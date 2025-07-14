@@ -14,11 +14,15 @@ repositories {
 }
 
 dependencies {
-    implementation("ai.koog:koog-agents:0.2.1")
-    implementation("io.modelcontextprotocol:kotlin-sdk:0.5.0")
-    implementation("io.ktor:ktor-server-netty")
-    implementation("io.ktor:ktor-server-config-yaml")
-    implementation("io.ktor:ktor-server-sse")
+    implementation(libs.koog)
+    implementation(libs.mcp)
+    implementation(ktorLibs.server.netty)
+    implementation(ktorLibs.server.config.yaml)
+    implementation(ktorLibs.server.sse)
     implementation("ch.qos.logback:logback-classic:1.4.14")
     implementation("org.testcontainers:testcontainers:1.21.3")
+}
+
+kotlin {
+    jvmToolchain(17)
 }

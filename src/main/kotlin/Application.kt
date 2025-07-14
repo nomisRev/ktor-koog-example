@@ -37,12 +37,12 @@ fun main() {
         .getAs<AppConfig>()
 
     embeddedServer(Netty, host = config.host, port = config.port) {
-        val executor = executor(config.apiKey)
-        module(executor)
+        app(config)
     }.start(wait = true)
 }
 
-suspend fun Application.module(executor: MultiLLMPromptExecutor) {
+suspend fun Application.app(config: AppConfig) {
+    val executor = executor(config.apiKey)
     val googleMaps = mcpGoogleMaps()
     val weather = ToolRegistry { tools(WeatherTool(httpClient()).asTools()) }
     val allTools = (googleMaps + weather)

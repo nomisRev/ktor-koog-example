@@ -12,7 +12,10 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-class WeatherTool(private val client: HttpClient) : ToolSet {
+class WeatherTool(
+    private val client: HttpClient,
+    private val apiUrl: String
+) : ToolSet {
 
     @Tool
     @LLMDescription("Fetches the current weather for a given latitude and longitude using the Open-Meteo API.")
@@ -23,7 +26,7 @@ class WeatherTool(private val client: HttpClient) : ToolSet {
         longitude: Double
     ): ToolResult = try {
         println("Fetching weather for Lat: $latitude, Lon: $longitude...")
-        client.get("https://api.open-meteo.com/v1/forecastPOOP") {
+        client.get(apiUrl) {
             parameter("latitude", latitude)
             parameter("longitude", longitude)
             parameter("current_weather", true)

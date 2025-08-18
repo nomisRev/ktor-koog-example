@@ -1,6 +1,82 @@
 [versions]
-koog = "0.2.1"
+agp = "8.11.0"
+android-compileSdk = "35"
+android-minSdk = "26"
+android-targetSdk = "35"
+androidx-activityCompose = "1.10.1"
+androidx-lifecycle = "2.9.1"
+androidx-navigation = "2.9.0-beta04"
+compose-android = "1.8.3"
+compose-hot-reload = "1.0.0-beta04"
+compose-multiplatform = "1.9.0-beta01"
+coil = "3.3.0"
+credentials = "1.5.0"
+googleid-version = "1.1.1"
+koogAgents = "0.3.0.4"
+kotlin = "2.2.20-Beta2"
+logback = "1.5.18"
+kotlinx-serialization = "1.9.0"
+kotlinx-coroutines = "1.10.2"
+androidx-datastore = "1.1.7"
+androidx-security-crypto = "1.1.0"
+kermit = "2.0.6"
+koin = "4.1.0"
+kotlinx-html = "0.12.0"
+exposed = "1.0.0-beta-5"
+hikari = "7.0.0"
+mockOauth2Server = "2.2.1"
+postgresql = "42.7.7"
+flyway = "11.10.5"
 
 [libraries]
-koog = { group = "ai.koog", name = "koog-agents", version.ref = "koog" }
-mcp = "io.modelcontextprotocol:kotlin-sdk:0.5.0"
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid-version" }
+koog-agents = { module = "ai.koog:koog-agents", version.ref = "koogAgents" }
+koog-tools = { module = "ai.koog:agents-tools", version.ref = "koogAgents" }
+koog-ktor = { module = "ai.koog:koog-ktor", version.ref = "koogAgents" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "androidx-navigation" }
+logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security-crypto" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
+koin-compose-viewmodel-navigation = { module = "io.insert-koin:koin-compose-viewmodel-navigation", version.ref = "koin" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+kotlinx-html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx-html" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+components-ui-tooling-preview = { module = "org.jetbrains.compose.components:components-ui-tooling-preview", version.ref = "compose-multiplatform" }
+compose-ui-backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "compose-multiplatform" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose-android" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "compose-android" }
+
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+
+exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
+hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+mock-oauth2-server = { module = "no.nav.security:mock-oauth2-server", version.ref = "mockOauth2Server" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose-hot-reload = { id = "org.jetbrains.compose.hot-reload", version.ref = "compose-hot-reload" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }

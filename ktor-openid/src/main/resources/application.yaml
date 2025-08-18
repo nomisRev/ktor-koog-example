@@ -1,0 +1,12 @@
+ktor:
+  application:
+    modules:
+      - com.example.ApplicationKt.module
+  deployment:
+    port: 8080
+  openid:
+    google:
+      issuer: "$ISSUER_URL:https://accounts.google.com"
+      clientId: "$GOOGLE_CLIENT_ID:my-client-id"
+      clientSecret: "$AUTH_CLIENT_SECRET:my-client-secret"
+      scopes: [ "openid", "profile", "email" ]

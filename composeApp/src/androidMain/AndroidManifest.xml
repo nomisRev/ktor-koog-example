@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Internet permission for OAuth and API calls -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+            android:allowBackup="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:supportsRtl="true"
+            android:networkSecurityConfig="@xml/network_security_config"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity
+                android:exported="true"
+                android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
+                android:name="org.jetbrains.demo.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <!-- Intent filter for OAuth2 redirect -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+
+                <!-- URI scheme for OAuth2 redirect -->
+                <data android:scheme="org.jetbrains" android:host="oauth2callback"/>
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

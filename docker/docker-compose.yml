@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ktor-sample-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mcp-gateway:
+    image: docker/mcp-gateway:latest
+    ports:
+      - "9011:9011"
+      # Take caution, this gives contianers access to their host (docker daemon).
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/run/host-services/backend.sock:/run/host-services/backend.sock"
+    command:
+      - --verbose
+      - --transport=sse
+      - --servers=google-maps
+      - --tools=google-maps:maps_directions
+      - --tools=google-maps:maps_distance_matrix
+      - --tools=google-maps:maps_elevation
+      - --tools=google-maps:maps_geocode
+      - --tools=google-maps:maps_place_details
+      - --tools=google-maps:maps_reverse_geocode
+      - --tools=google-maps:maps_search_places
+      - --port=9011
+    environment:
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+
+volumes:
+  postgres_data:

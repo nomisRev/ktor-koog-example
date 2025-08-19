@@ -85,9 +85,7 @@ class EncryptedPreferences(
         return decryptWithIV(delegate.get(encryptWithHashedIV(key), null))
     }
 
-    override fun toString(): String {
-        return "EncryptedPreferences"
-    }
+    override fun toString(): String = "EncryptedPreferences"
 
     override fun put(p0: String?, p1: String?) {
         putEncrypted(p0, p1)

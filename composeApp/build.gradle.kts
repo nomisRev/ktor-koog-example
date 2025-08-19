@@ -137,7 +137,7 @@ kotlin {
 }
 
 private fun property(name: String): String? =
-    "System.getenv(name) ?: MavenScope.System.getProperty(name)"
+    System.getenv(name) ?: System.getProperty(name) ?: gradleLocalProperties(projectDir, providers).getProperty(name)
 
 android {
     namespace = "org.jetbrains"

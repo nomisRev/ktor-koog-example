@@ -29,7 +29,7 @@ dependencies {
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.auth.jwt)
-    implementation(ktorLibs.server.callLogging)
+//    implementation(ktorLibs.server.callLogging)
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.client.cio)

@@ -1,5 +1,7 @@
 package org.jetbrains.demo.agent.chat
 
+import ai.koog.agents.features.tracing.feature.Tracing
+import ai.koog.agents.features.tracing.writer.TraceFeatureMessageFileWriter
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.markdown.markdown
@@ -12,13 +14,15 @@ import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.async
+import kotlinx.io.buffered
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentEvent
 import org.jetbrains.demo.AgentEvent.*
 import org.jetbrains.demo.AppConfig
 import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.PointOfInterestFindings
-import org.jetbrains.demo.Tool
 import org.jetbrains.demo.agent.koog.ktor.StreamingAIAgent
 import org.jetbrains.demo.agent.koog.ktor.sseAgent
 import org.jetbrains.demo.agent.koog.ktor.withSystemPrompt
@@ -50,6 +54,15 @@ fun Application.agent(config: AppConfig) {
                                 +"You can only call tools. Figure out the accurate information from calling the google-maps tool, and the weather tool."
                             })
                         })
+                    },
+                    installFeatures = {
+                        install(Tracing) {
+                            addMessageProcessor(
+                                TraceFeatureMessageFileWriter<Path>(
+                                Path("agent-traces.log"),
+                                sinkOpener = { path -> SystemFileSystem.sink(path).buffered() }
+                            ))
+                        }
                     }
                 ).run(form)
                     .collect { event: StreamingAIAgent.Event<JourneyForm, PointOfInterestFindings> ->
@@ -96,16 +109,16 @@ private fun StreamingAIAgent.Event<JourneyForm, PointOfInterestFindings>.toDomai
 
         is StreamingAIAgent.Event.Tool -> when (this) {
             is StreamingAIAgent.Event.OnToolCall ->
-                ToolStarted(persistentListOf(Tool(this.toolCallId!!, this.tool.name)))
+                ToolStarted(this.toolCallId!!, this.tool.name)
 
             is StreamingAIAgent.Event.OnToolCallResult ->
-                ToolFinished(persistentListOf(Tool(this.toolCallId!!, this.tool.name)))
+                ToolFinished(this.toolCallId!!, this.tool.name)
 
             is StreamingAIAgent.Event.OnToolCallFailure ->
-                ToolFinished(persistentListOf(Tool(this.toolCallId!!, this.tool.name)))
+                ToolFinished(this.toolCallId!!, this.tool.name)
 
             is StreamingAIAgent.Event.OnToolValidationError ->
-                ToolFinished(persistentListOf(Tool(this.toolCallId!!, this.tool.name)))
+                ToolFinished(this.toolCallId!!, this.tool.name)
         }
 
         is StreamingAIAgent.Event.OnAfterLLMCall -> {

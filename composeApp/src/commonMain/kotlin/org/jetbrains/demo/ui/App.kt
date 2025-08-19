@@ -12,8 +12,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.chat.ChatScreen
-import org.jetbrains.demo.agent.AgentPlannerRoute
 import org.jetbrains.demo.agent.AgentPlannerViewModel
+import org.jetbrains.demo.agent.ui.AgentCard
 import org.jetbrains.demo.journey.JourneySpannerRoute
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -33,13 +33,13 @@ fun App(
     authState: AuthState,
 ) {
     Logger.app.d("App: Composable started")
-    val navController = rememberNavController()
-//    val start = if (authState.hasToken()) Screen.Form else Screen.LogIn
-    val start = Screen.Form
+    val start = if (authState.hasToken()) Screen.Form else Screen.LogIn
+//    val start = Screen.Form
     val planner = koinViewModel<AgentPlannerViewModel>()
 
     AppTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            val navController = rememberNavController()
             Logger.app.d("App: Creating NavHost with $start")
             NavHost(navController, start) {
                 Logger.app.d("NavHost building")
@@ -58,7 +58,7 @@ fun App(
 
                 composable<Screen.Planner> {
                     Logger.app.d("NavHost: Screen.Planner")
-                    AgentPlannerRoute(planner)
+                    AgentCard(planner)
                 }
 
                 composable<Screen.Form> {
@@ -71,13 +71,13 @@ fun App(
                     }
                 }
             }
-        }
-    }
 
-    LaunchedEffect(navController) {
-        Logger.app.d("App: onNavHostReady")
-        onNavHostReady(navController)
-        Logger.app.d("App: onNavHostReady - Done")
+            LaunchedEffect(navController) {
+                Logger.app.d("App: onNavHostReady")
+                onNavHostReady(navController)
+                Logger.app.d("App: onNavHostReady - Done")
+            }
+        }
     }
 }
 

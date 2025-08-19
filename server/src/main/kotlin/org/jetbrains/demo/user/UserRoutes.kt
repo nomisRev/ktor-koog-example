@@ -20,16 +20,16 @@ fun Application.userRoutes(users: UserRepository) = routing {
     authenticate("google") {
         route("user") {
             post("/register") {
-                val principal =
-                    call.principal<OpenIdConnectPrincipal>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val user = users.create(principal.userInfo.subject)
+                val userInfo =
+                    call.principal<OpenIdConnectPrincipal.UserInfo>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val user = users.create(userInfo.subject)
                 call.respond(HttpStatusCode.OK, user)
             }
 
             get("/") {
-                val principal =
-                    call.principal<OpenIdConnectPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                val user = users.findOrNull(principal.userInfo.subject)
+                val userInfo =
+                    call.principal<OpenIdConnectPrincipal.UserInfo>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                val user = users.findOrNull(userInfo.subject)
                 if (user == null) call.respond(HttpStatusCode.NotFound)
                 else call.respond(HttpStatusCode.OK, user)
             }
@@ -41,17 +41,17 @@ fun Application.userRoutes(users: UserRepository) = routing {
             }
 
             put("/update") {
-                val principal =
-                    call.principal<OpenIdConnectPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                val userInfo =
+                    call.principal<OpenIdConnectPrincipal.UserInfo>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
                 val update = call.receive<UpdateUser>()
-                val updatedUser = users.create(principal.userInfo.subject, update)
+                val updatedUser = users.create(userInfo.subject, update)
                 call.respond(HttpStatusCode.OK, updatedUser)
             }
 
             delete("/delete") {
-                val principal =
-                    call.principal<OpenIdConnectPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
-                users.delete(principal.userInfo.subject)
+                val userInfo =
+                    call.principal<OpenIdConnectPrincipal.UserInfo>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                users.delete(userInfo.subject)
                 call.respond(HttpStatusCode.OK)
             }
         }

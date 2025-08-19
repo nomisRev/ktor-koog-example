@@ -24,12 +24,12 @@ fun HttpClient(
     install(SSE)
     logger.d("BaseURL: ${config.apiBaseUrl})")
     defaultRequest { url(config.apiBaseUrl) }
-//    if (tokenProvider != null) {
-//        logger.d("TokenProvider is not null, applying header authentication")
-//        withAuthBearer(tokenProvider, logger)
-//    } else {
-//        logger.d("TokenProvider is null, skipping header authentication. (On browser this is expected, we use sessions)")
-//    }
+    if (tokenProvider != null) {
+        logger.d("TokenProvider is not null, applying header authentication")
+        withAuthBearer(tokenProvider, logger)
+    } else {
+        logger.d("TokenProvider is null, skipping header authentication. (On browser this is expected, we use sessions)")
+    }
 }
 
 private fun HttpClientConfig<*>.withAuthBearer(tokenProvider: TokenProvider, logger: Logger) {
@@ -37,15 +37,18 @@ private fun HttpClientConfig<*>.withAuthBearer(tokenProvider: TokenProvider, log
         bearer {
             loadTokens {
                 val token = tokenProvider.getToken() ?: tokenProvider.refreshToken()
-                logger.d("Loading token for request: ${token != null}")
+                logger.d("Loading token for request. Token available: ${token != null}")
                 token?.let {
-                    BearerTokens(accessToken = it, refreshToken = null)
+                    BearerTokens(accessToken = it, refreshToken = "null")
                 }?.also { logger.d("BearerTokens token: $it") }
             }
 
             refreshTokens {
                 logger.d("Refreshing token...")
-                val newToken = tokenProvider.refreshToken()
+                val originalToken = tokenProvider.getToken()
+                Logger.d("Original token: $originalToken")
+                val newToken = if (originalToken == null) tokenProvider.refreshToken() else originalToken
+                Logger.d("New token: $newToken")
                 if (newToken != null) {
                     logger.d("Token refresh successful")
                     BearerTokens(accessToken = newToken, refreshToken = null)

@@ -6,6 +6,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.submitForm
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpHeaders.Authorization
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode.Companion.Unauthorized
 import io.ktor.http.Parameters
@@ -32,6 +34,7 @@ import io.ktor.server.auth.authentication
 import io.ktor.server.auth.jwt.JWTAuthenticationProvider
 import io.ktor.server.auth.jwt.JWTConfigureFunction
 import io.ktor.server.auth.jwt.JWTCredential
+import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.auth.principal
 import io.ktor.server.config.getAs
 import io.ktor.server.plugins.origin
@@ -595,13 +598,14 @@ private class OpenIdConnectJwkAndSessionAuthenticationProvider(
             )
             authHeader { call ->
                 if (checkSession) {
-                    call.sessions.get<OpenIdConnectPrincipal>()
-                        ?.idToken
-                        ?.let { HttpAuthHeader.Single("Bearer", it) }
-                        ?: call.request.headers["Authorization"]?.let { parseAuthorizationHeader(it) }
+                    call.request.headers[Authorization]?.let { parseAuthorizationHeader(it) }
+                        ?: call.sessions.get<OpenIdConnectPrincipal>()
+                            ?.idToken
+                            ?.let { HttpAuthHeader.Single("Bearer", it) }
                 } else {
-                    call.request.headers["Authorization"]?.let { parseAuthorizationHeader(it) }
+                    call.request.headers[Authorization]?.let { parseAuthorizationHeader(it) }
                 }
+
             }
             this.validate(jwkConfig.validate)
         })

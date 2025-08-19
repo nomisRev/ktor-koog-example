@@ -10,10 +10,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.auth.*
 import org.jetbrains.demo.chat.ChatScreen
 import org.jetbrains.demo.agent.AgentPlannerViewModel
 import org.jetbrains.demo.agent.ui.AgentCard
+import org.jetbrains.demo.journey.EmptyJourneyForm
 import org.jetbrains.demo.journey.JourneySpannerRoute
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -34,7 +36,6 @@ fun App(
 ) {
     Logger.app.d("App: Composable started")
     val start = if (authState.hasToken()) Screen.Form else Screen.LogIn
-//    val start = Screen.Form
     val planner = koinViewModel<AgentPlannerViewModel>()
 
     AppTheme {

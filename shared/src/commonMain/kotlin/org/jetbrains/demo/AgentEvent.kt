@@ -40,7 +40,11 @@ sealed interface AgentEvent {
     data class AgentStarted(val agentId: String, val runId: String) : AgentEvent
 
     @Serializable
-    data class ToolStarted(val id: String, val name: String) : AgentEvent
+    data class ToolStarted(
+        val id: String,
+        val name: String,
+
+    ) : AgentEvent
 
     @Serializable
     data class ToolFinished(val id: String, val name: String) : AgentEvent

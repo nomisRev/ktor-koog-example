@@ -12,6 +12,6 @@ val desktopModule = module {
             DesktopConfig,
             EncryptedPreferences("auth", "my-super-secret"),
             get()
-        ).also { it.clearToken() }
+        )
     }
 }

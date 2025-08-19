@@ -60,9 +60,6 @@ suspend fun <Input, Output> ServerSSESession.sseAgent(
     )
 }
 
-fun AIAgentConfig.withSystemPrompt(prompt: Prompt): AIAgentConfig =
-    AIAgentConfig(prompt, model, maxAgentIterations, missingToolsConversionStrategy)
-
 suspend inline fun <reified Input, reified Output> ServerSSESession.sseAgent(
     strategy: AIAgentStrategy<Input, Output>,
     model: LLModel,
@@ -120,7 +117,6 @@ class StreamingAIAgent<Input, Output>(
 
         @JvmInline
         value class OnAgentBeforeClose(val agentId: String) : Agent<Nothing, Nothing>
-
 
         sealed interface Strategy<Input, Output> : Event<Input, Output>
 
@@ -237,7 +233,7 @@ class StreamingAIAgent<Input, Output>(
         install(EventHandler) {
             onBeforeAgentStarted { ctx ->
                 send(
-                    Event.OnBeforeAgentStarted<Input, Output>(
+                    Event.OnBeforeAgentStarted(
                         ctx.agent as AIAgent<Input, Output>,
                         ctx.runId,
                         ctx.strategy as AIAgentStrategy<Input, Output>,

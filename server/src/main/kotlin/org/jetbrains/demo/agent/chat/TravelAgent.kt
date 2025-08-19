@@ -1,10 +1,5 @@
 package org.jetbrains.demo.agent.chat
 
-import ai.koog.agents.features.tracing.feature.Tracing
-import ai.koog.agents.features.tracing.writer.TraceFeatureMessageFileWriter
-import ai.koog.prompt.dsl.prompt
-import ai.koog.prompt.executor.clients.openai.OpenAIModels
-import ai.koog.prompt.markdown.markdown
 import ai.koog.prompt.message.Message
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -12,20 +7,13 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.async
-import kotlinx.io.buffered
-import kotlinx.io.files.Path
-import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentEvent
 import org.jetbrains.demo.AgentEvent.*
 import org.jetbrains.demo.AppConfig
 import org.jetbrains.demo.JourneyForm
-import org.jetbrains.demo.PointOfInterestFindings
 import org.jetbrains.demo.agent.koog.ktor.StreamingAIAgent
-import org.jetbrains.demo.agent.koog.ktor.sseAgent
-import org.jetbrains.demo.agent.koog.ktor.withSystemPrompt
 import org.jetbrains.demo.agent.tools.tools
 
 public fun Route.sse(
@@ -42,30 +30,9 @@ fun Application.agent(config: AppConfig) {
             sse("/plan", HttpMethod.Post) {
                 val form = call.receive<JourneyForm>()
                 val tools = deferredTools.await()
-                sseAgent(
-                    planner(tools),
-                    OpenAIModels.CostOptimized.GPT4oMini,
-                    tools.registry(),
-                    configureAgent = {
-                        it.withSystemPrompt(prompt("travel-assistant-agent") {
-                            system(markdown {
-                                +"You're an expert travel assistant helping users reach their destination in a reliable way."
-                                header(1, "Task description:")
-                                +"You can only call tools. Figure out the accurate information from calling the google-maps tool, and the weather tool."
-                            })
-                        })
-                    },
-                    installFeatures = {
-                        install(Tracing) {
-                            addMessageProcessor(
-                                TraceFeatureMessageFileWriter<Path>(
-                                Path("agent-traces.log"),
-                                sinkOpener = { path -> SystemFileSystem.sink(path).buffered() }
-                            ))
-                        }
-                    }
-                ).run(form)
-                    .collect { event: StreamingAIAgent.Event<JourneyForm, PointOfInterestFindings> ->
+                createPlannerAgent(tools)
+                    .run(form)
+                    .collect { event: StreamingAIAgent.Event<JourneyForm, TripPlan> ->
                         val result = event.toDomainEventOrNull()
 
                         if (result != null) {
@@ -80,7 +47,7 @@ fun Application.agent(config: AppConfig) {
     }
 }
 
-private fun StreamingAIAgent.Event<JourneyForm, PointOfInterestFindings>.toDomainEventOrNull(): AgentEvent? {
+private fun StreamingAIAgent.Event<JourneyForm, TripPlan>.toDomainEventOrNull(): AgentEvent? {
     var inputTokens = 0
     var outputTokens = 0
     var totalTokens = 0
@@ -88,10 +55,10 @@ private fun StreamingAIAgent.Event<JourneyForm, PointOfInterestFindings>.toDomai
     return when (this) {
         is StreamingAIAgent.Event.Agent -> when (this) {
             is StreamingAIAgent.Event.OnAgentBeforeClose -> null
-            is StreamingAIAgent.Event.OnAgentFinished<PointOfInterestFindings> -> AgentFinished(
+            is StreamingAIAgent.Event.OnAgentFinished<TripPlan> -> AgentFinished(
                 agentId = this.agentId,
                 runId = this.runId,
-                result = this.result.toString()
+                result = this.result.toStringDefault()
             )
 
             is StreamingAIAgent.Event.OnAgentRunError ->
@@ -101,7 +68,7 @@ private fun StreamingAIAgent.Event<JourneyForm, PointOfInterestFindings>.toDomai
                     result = this.throwable.message ?: "Unknown error"
                 )
 
-            is StreamingAIAgent.Event.OnBeforeAgentStarted<JourneyForm, PointOfInterestFindings> -> AgentStarted(
+            is StreamingAIAgent.Event.OnBeforeAgentStarted<JourneyForm, TripPlan> -> AgentStarted(
                 this.context.agentId,
                 this.context.runId
             )

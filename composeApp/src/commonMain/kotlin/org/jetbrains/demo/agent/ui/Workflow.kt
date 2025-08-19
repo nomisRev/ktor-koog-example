@@ -9,24 +9,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.demo.agent.AgentPlannerViewModel
-import org.jetbrains.demo.agent.RowType
+import org.jetbrains.demo.agent.TimelineItem
+import org.jetbrains.demo.ui.Logger
 
 @Composable
 fun Workflow(demo: AgentPlannerViewModel) {
     val groupedRows by demo.state.collectAsStateWithLifecycle(persistentListOf())
+    Logger.app.d { "Workflow: $groupedRows" }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(
-            items = groupedRows,
-            key = { row ->
-                when (row.type) {
-                    RowType.TaskGroup -> "task_${row.items.joinToString("_") { it.id }}"
-                    RowType.Message -> "message_${row.message.hashCode()}"
-                }
-            }
-        ) { row ->
-            when (row.type) {
-                RowType.TaskGroup -> ToolRow(row)
-                RowType.Message -> MessageRow(row.message)
+        items(items = groupedRows) { row ->
+            when(row) {
+                is TimelineItem.Messages -> MessageRow(row.message)
+                is TimelineItem.Tasks -> ToolRow(row.tasks)
             }
         }
     }

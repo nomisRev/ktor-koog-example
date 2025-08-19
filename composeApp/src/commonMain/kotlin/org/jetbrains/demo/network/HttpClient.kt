@@ -45,9 +45,7 @@ private fun HttpClientConfig<*>.withAuthBearer(tokenProvider: TokenProvider, log
 
             refreshTokens {
                 logger.d("Refreshing token...")
-                val originalToken = tokenProvider.getToken()
-                Logger.d("Original token: $originalToken")
-                val newToken = if (originalToken == null) tokenProvider.refreshToken() else originalToken
+                val newToken = tokenProvider.refreshToken()
                 Logger.d("New token: $newToken")
                 if (newToken != null) {
                     logger.d("Token refresh successful")

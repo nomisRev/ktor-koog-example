@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.demo.agent.AgentPlannerViewModel
-import org.jetbrains.demo.agent.RowType
+import org.jetbrains.demo.agent.TimelineItem
 
 @Composable
 fun Workflow(demo: AgentPlannerViewModel) {
@@ -17,16 +17,10 @@ fun Workflow(demo: AgentPlannerViewModel) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(
             items = groupedRows,
-            key = { row ->
-                when (row.type) {
-                    RowType.TaskGroup -> "task_${row.items.joinToString("_") { it.id }}"
-                    RowType.Message -> "message_${row.message.hashCode()}"
-                }
-            }
         ) { row ->
-            when (row.type) {
-                RowType.TaskGroup -> ToolRow(row)
-                RowType.Message -> MessageRow(row.message)
+            when (row) {
+                is TimelineItem.Messages -> MessageRow(row.message)
+                is TimelineItem.Tasks -> ToolRow(row.tasks)
             }
         }
     }

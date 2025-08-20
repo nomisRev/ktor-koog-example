@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.toDeprecatedClock
+import org.jetbrains.demo.agent.chat.ItineraryIdeas
 import java.lang.IllegalStateException
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
@@ -61,6 +62,10 @@ suspend fun <Input, Output> ServerSSESession.sseAgent(
 }
 
 fun AIAgentConfig.withSystemPrompt(prompt: Prompt): AIAgentConfig =
+    AIAgentConfig(prompt, model, maxAgentIterations, missingToolsConversionStrategy)
+
+
+fun AIAgentConfig.withMaxAgentIterations(maxAgentIterations: Int): AIAgentConfig =
     AIAgentConfig(prompt, model, maxAgentIterations, missingToolsConversionStrategy)
 
 suspend inline fun <reified Input, reified Output> ServerSSESession.sseAgent(

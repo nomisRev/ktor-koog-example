@@ -66,27 +66,15 @@ class DesktopTokenProvider(
         preferences.flush()
     }
 
-    // Add this helper function at the class level
-    private fun findAvailablePort(): Int {
-        return try {
-            ServerSocket(0).use { socket -> socket.localPort }
-        } catch (e: Exception) {
-            // Fallback to a high port number if ServerSocket fails
-            8080 + (0..9999).random()
-        }
-    }
-
-
     override suspend fun refreshToken(): String? = withContext(Dispatchers.IO) {
         logger.d("Refreshing token")
-        val port = findAvailablePort()
         val callback = CompletableDeferred<OAuthAccessTokenResponse.OAuth2>()
-        val server = embeddedServer(CIO, port = port) {
-//            val port = async { engine.resolvedConnectors().first().port }
+        val server = embeddedServer(CIO) {
+            val port = async { engine.resolvedConnectors().first().port }
             authentication {
                 oauth("oauth") {
                     @OptIn(ExperimentalCoroutinesApi::class)
-                    urlProvider = { "http://localhost:$port/callback".also { println(it) } }
+                    urlProvider = { "http://localhost:${port.getCompleted()}/callback".also { println(it) } }
                     providerLookup = {
                         OAuthServerSettings.OAuth2ServerSettings(
                             name = "google",
@@ -132,7 +120,7 @@ class DesktopTokenProvider(
             }
             logger.d("Refreshing token. Opening browser. $url")
             Desktop.getDesktop().browse(URI(url))
-            val oauth = withTimeout(15.seconds) { callback.await() }
+            val oauth =  callback.await()
             logger.d("Received oauth tokens. idToken: ${oauth.extraParameters[KEY_ID_TOKEN]}")
             val idToken = oauth.extraParameters[KEY_ID_TOKEN]
             if (idToken != null) {

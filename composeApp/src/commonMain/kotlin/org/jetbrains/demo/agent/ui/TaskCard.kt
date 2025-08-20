@@ -46,11 +46,10 @@ enum class Task(val icon: DrawableResource) {
 }
 
 @Composable
-fun TaskCard(task: TimelineItem, modifier: Modifier = Modifier) {
+fun TaskCard(task: TimelineItem.Task, modifier: Modifier = Modifier) {
     val isFinished = task.status == TaskStatus.Finished
-    val taskName = (task.event as? AgentEvent.ToolStarted)?.name ?: (task.event as? AgentEvent.ToolFinished)?.name
+    val taskName = task.name
     val taskKind = when {
-        taskName == null -> Task.Other
         taskName.contains("maps") -> Task.Maps
         taskName.contains("database") -> Task.Database
         taskName.contains("web") -> Task.Web
@@ -103,7 +102,7 @@ fun TaskCard(task: TimelineItem, modifier: Modifier = Modifier) {
                     MaterialTheme.colorScheme.onPrimaryContainer
             )
             Text(
-                text = taskName ?: "Other",
+                text = taskName,
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isFinished)
                     MaterialTheme.colorScheme.onSurfaceVariant

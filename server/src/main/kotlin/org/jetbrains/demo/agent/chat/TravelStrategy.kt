@@ -1,42 +1,26 @@
 package org.jetbrains.demo.agent.chat
 
-import ai.koog.agents.core.agent.context.AIAgentLLMContext
 import ai.koog.agents.core.agent.context.agentInput
-import ai.koog.agents.core.agent.entity.AIAgentStrategy
-import ai.koog.agents.core.agent.entity.AIAgentSubgraph
-import ai.koog.agents.core.agent.entity.ToolSelectionStrategy
-import ai.koog.agents.core.dsl.builder.AIAgentSubgraphDelegate
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.prompt.dsl.PromptBuilder
+import ai.koog.agents.ext.agent.subgraphWithTask
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.markdown.markdown
-import ai.koog.prompt.message.Message
-import org.checkerframework.checker.units.qual.t
-import org.jetbrains.demo.ItineraryIdeas
 import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.PointOfInterest
-import org.jetbrains.demo.PointOfInterestFindings
-import org.jetbrains.demo.ResearchedPointOfInterest
-import org.jetbrains.demo.agent.koog.descriptors
 import org.jetbrains.demo.agent.koog.parallel
 import org.jetbrains.demo.agent.tools.Tools
 
-fun planner(tools: Tools) = strategy("travel-planner") {
-    val pointsOfInterest by pointsOfInterest(tools)
-    val researchPointOfInterest by researchPointOfInterest(tools)
-    val researchPoints by parallel(pointsOfInterest, researchPointOfInterest) { it.pointsOfInterest }
+private val IMAGE_WIDTH = 400
+private val WORD_COUNT = 200
 
-    edge(nodeStart forwardTo researchPoints)
-    edge(researchPoints forwardTo nodeFinish transformed { PointOfInterestFindings(it) })
-}
-
-fun pointsOfInterest(tools: Tools) = simpleStructuredInputOutput<JourneyForm, ItineraryIdeas>(
-    toolSelectionStrategy = tools.mathWebAndMaps(),
-    llmModel = OpenAIModels.Reasoning.GPT4oMini
-) { input ->
-    llm.requestLmmWithUpdatedPrompt {
-        user(markdown {
+fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-planner") {
+    val pointsOfInterest by subgraphWithTask<JourneyForm, ItineraryIdeas>(
+        toolSelectionStrategy = tools.mathWebAndMaps(),
+        llmModel = OpenAIModels.Reasoning.GPT4oMini,
+        finishTool = ItineraryIdeasProvider
+    ) { input ->
+        markdown {
             header(1, "Task description")
             +"Find points of interest that are relevant to the travel journey and travelers."
             +"Use mapping tools to consider appropriate order and put a rough date range for each point of interest."
@@ -47,17 +31,16 @@ fun pointsOfInterest(tools: Tools) = simpleStructuredInputOutput<JourneyForm, It
                 item("Leaving on ${input.startDate}, and returning on ${input.endDate}.")
                 item("The preferred transportation method is ${input.transport}.")
             }
-        })
+        }
     }
-}
 
-fun researchPointOfInterest(tools: Tools) = simpleStructuredInputOutput<PointOfInterest, ResearchedPointOfInterest>(
-    toolSelectionStrategy = tools.web(),
-    llmModel = OpenAIModels.Reasoning.GPT4oMini
-) { idea ->
-    val form = agentInput<JourneyForm>()
-    llm.requestLmmWithUpdatedPrompt {
-        user(markdown {
+    val researchPointOfInterest by subgraphWithTask<PointOfInterest, ResearchedPointOfInterest>(
+        toolSelectionStrategy = tools.mathWebAndMaps(),
+        llmModel = OpenAIModels.Reasoning.GPT4oMini,
+        finishTool = ResearchedPointOfInterestProvider
+    ) { idea ->
+        val form = agentInput<JourneyForm>()
+        markdown {
             +"Research the following point of interest."
             +"Consider interesting stories about art and culture and famous people."
             +"Details from the traveler: ${form.travelers}."
@@ -70,12 +53,59 @@ fun researchPointOfInterest(tools: Tools) = simpleStructuredInputOutput<PointOfI
                 item("From ${idea.fromDate} to ${idea.toDate}")
                 item("Description: ${idea.description}")
             }
-        })
+        }
     }
-}
 
-private suspend fun AIAgentLLMContext.requestLmmWithUpdatedPrompt(body: PromptBuilder.() -> Unit): Message.Response =
-    writeSession {
-        updatePrompt { body() }
-        requestLLM()
+    val researchPoints by parallel(pointsOfInterest, researchPointOfInterest) { it.pointsOfInterest }
+    val proposePlan by subgraphWithTask<PointOfInterestFindings, ProposedTravelPlan>(
+        toolSelectionStrategy = tools.mathWebAndMaps(),
+        llmModel = OpenAIModels.Reasoning.GPT4oMini,
+        finishTool = ProposedTravelPlanProvider
+    ) { input ->
+        val form = agentInput<JourneyForm>()
+        // TODO turn this in proper structured data, and render something in the UI.
+        """
+                Given the following travel brief, create a detailed plan.
+                Give it a brief, catchy title that doesn't include dates, but may consider season, mood or relate to travelers's interests.
+
+                Plan the journey to minimize travel time.
+                However, consider any important events or places of interest along the way that might inform routing.
+                Include total distances.
+
+                ${form.details?.let { "<details>${it}</details>" } ?: ""}
+                Consider the weather in your recommendations. Use mapping tools to consider distance of driving or walking.
+
+                Write up in $WORD_COUNT words or less.
+                Include links in text where appropriate and in the links field.
+                
+                The Day field locationAndCountry field should be in the format <location,+Country> e.g. Ghent,+Belgium
+
+                Put image links where appropriate in text and also in the links field.
+
+                Recount at least one interesting story about a famous person associated with an area.
+                
+                Include natural headings and paragraphs in MARKDOWN format.
+                Use unordered lists as appropriate.
+                Start any headings at Header 4
+                Embed images in text, with max width of ${IMAGE_WIDTH}px.
+                Be sure to include informative caption and alt text for each image.
+
+                Consider the following points of interest:
+                ${
+            input.pointsOfInterest.joinToString("\n") {
+                """
+                    ${it.pointOfInterest.name}
+                    ${it.research}
+                    ${it.links.joinToString { link -> "${link.url}: ${link.summary}" }}
+                    Images: ${it.imageLinks.joinToString { link -> "${link.url}: ${link.summary}" }}
+
+                """.trimIndent()
+            }
+        }
+            """.trimIndent()
     }
+
+    nodeStart then researchPoints
+    edge(researchPoints forwardTo proposePlan transformed { PointOfInterestFindings(it) })
+    proposePlan then nodeFinish
+}

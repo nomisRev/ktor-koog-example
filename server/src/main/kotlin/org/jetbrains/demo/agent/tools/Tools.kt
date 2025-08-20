@@ -22,21 +22,21 @@ data class Tools(
     fun registry() = ToolRegistry {
         tools(MathTools)
         tools(weatherTool)
-        tools(duckDuckGoSearchTool)
+//        tools(duckDuckGoSearchTool)
         tools(googleMaps.tools)
     }
 
     fun mathWebAndMaps() = ToolSelectionStrategy.Tools(
         ToolRegistry {
-            tools(duckDuckGoSearchTool)
+//            tools(duckDuckGoSearchTool)
             tools(MathTools)
             tools(googleMaps.tools)
         }.descriptors()
     )
 
-    fun web() = ToolSelectionStrategy.Tools(
-        ToolRegistry { tools(duckDuckGoSearchTool) }.descriptors()
-    )
+//    fun web() = ToolSelectionStrategy.Tools(
+//        ToolRegistry { tools(duckDuckGoSearchTool) }.descriptors()
+//    )
 }
 
 suspend fun Application.tools(config: AppConfig): Tools {

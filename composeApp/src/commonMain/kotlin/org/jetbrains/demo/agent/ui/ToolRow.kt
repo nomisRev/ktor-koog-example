@@ -5,15 +5,16 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.unit.dp
-import org.jetbrains.demo.agent.GroupedTimelineRow
+import kotlinx.collections.immutable.ImmutableList
+import org.jetbrains.demo.agent.TimelineItem
 
 @Composable
-fun ToolRow(row: GroupedTimelineRow) {
+fun ToolRow(row: ImmutableList<TimelineItem.Task>) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        row.items.forEach { task ->
+        row.forEach { task ->
             key(task.id) {
                 TaskCard(task = task)
             }

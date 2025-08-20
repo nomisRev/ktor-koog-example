@@ -27,7 +27,6 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.toDeprecatedClock
-import org.jetbrains.demo.agent.chat.ItineraryIdeas
 import java.lang.IllegalStateException
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
@@ -100,121 +99,147 @@ class StreamingAIAgent<Input, Output>(
 ) : AIAgentBase<Input, Flow<StreamingAIAgent.Event<Input, Output>>> {
 
     sealed interface Event<out Input, out Output> {
-        sealed interface Agent<Input, Output> : Event<Input, Output>
+        val runId: String
+
+        sealed interface Agent<Input, Output> : Event<Input, Output> {
+            val agentId: String
+        }
 
         data class OnBeforeAgentStarted<Input, Output>(
             val agent: AIAgent<Input, Output>,
-            val runId: String,
+            override val runId: String,
             val strategy: AIAgentStrategy<Input, Output>,
             val feature: EventHandler,
             val context: AIAgentContextBase
-        ) : Agent<Input, Output>
+        ) : Agent<Input, Output> {
+            override val agentId: String
+                get() = agent.id
+        }
 
         data class OnAgentFinished<Output>(
-            val agentId: String,
-            val runId: String,
+            override val agentId: String,
+            override val runId: String,
             val result: Output,
             val resultType: KType,
         ) : Agent<Nothing, Output>
 
         data class OnAgentRunError(
-            val agentId: String,
-            val runId: String,
+            override val agentId: String,
+            override val runId: String,
             val throwable: Throwable
         ) : Agent<Nothing, Nothing>
 
-        @JvmInline
-        value class OnAgentBeforeClose(val agentId: String) : Agent<Nothing, Nothing>
-
-
-        sealed interface Strategy<Input, Output> : Event<Input, Output>
+        sealed interface Strategy<Input, Output> : Event<Input, Output> {
+            val strategy: AIAgentStrategy<Input, Output>
+            val feature: EventHandler
+        }
 
         data class OnStrategyStarted<Input, Output>(
-            val runId: String,
-            val strategy: AIAgentStrategy<Input, Output>,
-            val feature: EventHandler
+            override val runId: String,
+            override val strategy: AIAgentStrategy<Input, Output>,
+            override val feature: EventHandler
         ) : Strategy<Input, Output>
 
         data class OnStrategyFinished<Input, Output>(
-            val runId: String,
-            val strategy: AIAgentStrategy<Input, Output>,
-            val feature: EventHandler,
+            override val runId: String,
+            override val strategy: AIAgentStrategy<Input, Output>,
+            override val feature: EventHandler,
             val result: Output,
             val resultType: KType,
         ) : Strategy<Input, Output>
 
-        sealed interface Node : Event<Nothing, Nothing>
+        sealed interface Node : Event<Nothing, Nothing> {
+            val node: AIAgentNodeBase<*, *>
+            val context: AIAgentContextBase
+        }
 
         data class OnBeforeNode(
-            val node: AIAgentNodeBase<*, *>,
-            val context: AIAgentContextBase,
+            override val node: AIAgentNodeBase<*, *>,
+            override val context: AIAgentContextBase,
             val input: Any?,
             val inputType: KType,
-        ) : Node
+        ) : Node {
+            override val runId: String
+                get() = context.runId
+        }
 
         data class OnAfterNode(
-            val node: AIAgentNodeBase<*, *>,
-            val context: AIAgentContextBase,
+            override val node: AIAgentNodeBase<*, *>,
+            override val context: AIAgentContextBase,
             val input: Any?,
             val output: Any?,
             val inputType: KType,
             val outputType: KType,
-        ) : Node
+        ) : Node {
+            override val runId: String
+                get() = context.runId
+        }
 
         data class OnNodeExecutionError(
-            val node: AIAgentNodeBase<*, *>,
-            val context: AIAgentContextBase,
+            override val node: AIAgentNodeBase<*, *>,
+            override val context: AIAgentContextBase,
             val throwable: Throwable
-        ) : Node
+        ) : Node {
+            override val runId: String
+                get() = context.runId
+        }
 
-        sealed interface LLM : Event<Nothing, Nothing>
+        sealed interface LLM : Event<Nothing, Nothing> {
+            val prompt: Prompt
+            val model: LLModel
+            val tools: List<ToolDescriptor>
+        }
 
         data class OnBeforeLLMCall(
-            val runId: String,
-            val prompt: Prompt,
-            val model: LLModel,
-            val tools: List<ToolDescriptor>,
+            override val runId: String,
+            override val prompt: Prompt,
+            override val model: LLModel,
+            override val tools: List<ToolDescriptor>,
         ) : LLM
 
         data class OnAfterLLMCall(
-            val runId: String,
-            val prompt: Prompt,
-            val model: LLModel,
-            val tools: List<ToolDescriptor>,
+            override val runId: String,
+            override val prompt: Prompt,
+            override val model: LLModel,
+            override val tools: List<ToolDescriptor>,
             val responses: List<Message.Response>,
             val moderationResponse: ModerationResult?
         ) : LLM
 
-        sealed interface Tool : Event<Nothing, Nothing>
+        sealed interface Tool : Event<Nothing, Nothing> {
+            val toolCallId: String?
+            val toolArgs: ToolArgs
+            val tool: ai.koog.agents.core.tools.Tool<*, *>
+        }
 
         data class OnToolCall(
-            val runId: String,
-            val toolCallId: String?,
-            val tool: ai.koog.agents.core.tools.Tool<*, *>,
-            val toolArgs: ToolArgs
+            override val runId: String,
+            override val toolCallId: String?,
+            override val tool: ai.koog.agents.core.tools.Tool<*, *>,
+            override val toolArgs: ToolArgs
         ) : Tool
 
         data class OnToolValidationError(
-            val runId: String,
-            val toolCallId: String?,
-            val tool: ai.koog.agents.core.tools.Tool<*, *>,
-            val toolArgs: ToolArgs,
+            override val runId: String,
+            override val toolCallId: String?,
+            override val tool: ai.koog.agents.core.tools.Tool<*, *>,
+            override val toolArgs: ToolArgs,
             val error: String
         ) : Tool
 
         data class OnToolCallFailure(
-            val runId: String,
-            val toolCallId: String?,
-            val tool: ai.koog.agents.core.tools.Tool<*, *>,
-            val toolArgs: ToolArgs,
+            override val runId: String,
+            override val toolCallId: String?,
+            override val tool: ai.koog.agents.core.tools.Tool<*, *>,
+            override val toolArgs: ToolArgs,
             val throwable: Throwable
         ) : Tool
 
         data class OnToolCallResult(
-            val runId: String,
-            val toolCallId: String?,
-            val tool: ai.koog.agents.core.tools.Tool<*, *>,
-            val toolArgs: ToolArgs,
+            override val runId: String,
+            override val toolCallId: String?,
+            override val tool: ai.koog.agents.core.tools.Tool<*, *>,
+            override val toolArgs: ToolArgs,
             val result: ToolResult?
         ) : Tool
     }
@@ -262,7 +287,6 @@ class StreamingAIAgent<Input, Output>(
                 )
             }
             onAgentRunError { ctx -> send(Event.OnAgentRunError(ctx.agentId, ctx.runId, ctx.throwable)) }
-            onAgentBeforeClose { ctx -> send(Event.OnAgentBeforeClose(ctx.agentId)) }
 
             onStrategyStarted { ctx ->
                 send(

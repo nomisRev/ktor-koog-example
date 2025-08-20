@@ -1,4 +1,4 @@
-package org.jetbrains.demo.agent.chat
+package org.jetbrains.demo.agent.chat.strategy
 
 import ai.koog.agents.core.agent.context.agentInput
 import ai.koog.agents.core.dsl.builder.forwardTo
@@ -8,6 +8,7 @@ import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.markdown.markdown
 import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.PointOfInterest
+import org.jetbrains.demo.PointOfInterestFindings
 import org.jetbrains.demo.agent.koog.parallel
 import org.jetbrains.demo.agent.tools.Tools
 
@@ -106,6 +107,6 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
     }
 
     nodeStart then researchPoints
-    edge(researchPoints forwardTo proposePlan transformed { PointOfInterestFindings(it) })
+    edge(researchPoints forwardTo proposePlan transformed { PointOfInterestFindings(it.map(ResearchedPointOfInterest::toDomain)) })
     proposePlan then nodeFinish
 }

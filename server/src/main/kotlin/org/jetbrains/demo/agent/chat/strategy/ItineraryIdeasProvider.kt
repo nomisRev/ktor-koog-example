@@ -1,4 +1,4 @@
-package org.jetbrains.demo.agent.chat
+package org.jetbrains.demo.agent.chat.strategy
 
 import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolParameterDescriptor
@@ -6,13 +6,21 @@ import ai.koog.agents.core.tools.ToolParameterType
 import ai.koog.agents.ext.agent.ProvideSubgraphResult
 import ai.koog.agents.ext.agent.SubgraphResult
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.PointOfInterest
 
 @Serializable
+data class Test(val example: String) {
+}
+
+
+
+
+@Serializable
 data class ItineraryIdeas(val pointsOfInterest: List<PointOfInterest>) : SubgraphResult {
     override fun toStringDefault(): String =
-        Json.encodeToString(ItineraryIdeas.serializer(), this)
+        Json.encodeToString(serializer(), this)
 }
 
 object ItineraryIdeasProvider : ProvideSubgraphResult<ItineraryIdeas>() {

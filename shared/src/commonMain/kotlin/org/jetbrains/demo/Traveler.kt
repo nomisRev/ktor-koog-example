@@ -2,6 +2,7 @@ package org.jetbrains.demo
 
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -23,11 +24,6 @@ data class PointOfInterest(
 )
 
 @Serializable
-data class ItineraryIdeas(
-    val pointsOfInterest: List<PointOfInterest>,
-)
-
-@Serializable
 data class ResearchedPointOfInterest(
     val pointOfInterest: PointOfInterest,
     val research: String,
@@ -37,9 +33,7 @@ data class ResearchedPointOfInterest(
 )
 
 @Serializable
-data class PointOfInterestFindings(
-    val pointsOfInterest: List<ResearchedPointOfInterest>,
-)
+data class PointOfInterestFindings(val pointsOfInterest: List<ResearchedPointOfInterest>, )
 
 @Serializable
 data class Day(

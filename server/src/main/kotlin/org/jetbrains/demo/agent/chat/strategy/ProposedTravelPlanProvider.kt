@@ -1,4 +1,4 @@
-package org.jetbrains.demo.agent.chat
+package org.jetbrains.demo.agent.chat.strategy
 
 import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolParameterDescriptor
@@ -9,6 +9,8 @@ import ai.koog.agents.ext.agent.SubgraphResult
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.jetbrains.demo.Day
+import org.jetbrains.demo.InternetResource
 
 @Serializable
 data class ProposedTravelPlan(
@@ -27,6 +29,9 @@ data class ProposedTravelPlan(
 ) : SubgraphResult {
     override fun toStringDefault(): String =
         Json.encodeToString(serializer(), this)
+
+    fun toDomain() =
+        org.jetbrains.demo.ProposedTravelPlan(title, plan, days, imageLinks, pageLinks, countriesVisited)
 }
 
 object ProposedTravelPlanProvider : ProvideSubgraphResult<ProposedTravelPlan>() {

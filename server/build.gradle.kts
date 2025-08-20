@@ -17,8 +17,10 @@ group = "org.jetbrains.demo"
 version = "1.0.0"
 
 kotlin {
-    compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
-    compilerOptions.freeCompilerArgs.add("-Xannotation-default-target=param-property")
+    compilerOptions {
+        optIn.add("kotlin.time.ExperimentalTime")
+        freeCompilerArgs.addAll("-Xcontext-sensitive-resolution", "-Xannotation-default-target=param-property")
+    }
 }
 
 dependencies {

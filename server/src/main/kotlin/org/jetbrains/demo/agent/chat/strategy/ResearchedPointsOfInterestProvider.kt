@@ -1,4 +1,4 @@
-package org.jetbrains.demo.agent.chat
+package org.jetbrains.demo.agent.chat.strategy
 
 import ai.koog.agents.core.tools.ToolDescriptor
 import ai.koog.agents.core.tools.ToolParameterDescriptor
@@ -21,6 +21,9 @@ data class ResearchedPointOfInterest(
 ) : SubgraphResult {
     override fun toStringDefault(): String =
         Json.encodeToString(serializer(), this)
+
+    fun toDomain() =
+        org.jetbrains.demo.ResearchedPointOfInterest(pointOfInterest, research, links, imageLinks)
 }
 
 object ResearchedPointOfInterestProvider : ProvideSubgraphResult<ResearchedPointOfInterest>() {

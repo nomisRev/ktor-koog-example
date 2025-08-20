@@ -19,7 +19,7 @@ class WeatherTool(
 
     @Tool
     @LLMDescription("Fetches the current weather for a given latitude and longitude using the Open-Meteo API.")
-    suspend fun getWeather(
+    suspend fun weatherForLocation(
         @LLMDescription("The latitude of the location.")
         latitude: Double,
         @LLMDescription("The longitude of the location.")

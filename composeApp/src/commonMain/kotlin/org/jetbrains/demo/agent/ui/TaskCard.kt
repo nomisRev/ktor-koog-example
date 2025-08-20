@@ -34,8 +34,7 @@ import demo.composeapp.generated.resources.maps
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.demo.AgentEvent
-import org.jetbrains.demo.agent.TaskStatus
-import org.jetbrains.demo.agent.TimelineItem
+import org.jetbrains.demo.AgentEvent.Tool
 import kotlin.math.PI
 
 enum class Task(val icon: DrawableResource) {
@@ -46,8 +45,8 @@ enum class Task(val icon: DrawableResource) {
 }
 
 @Composable
-fun TaskCard(task: TimelineItem.Task, modifier: Modifier = Modifier) {
-    val isFinished = task.status == TaskStatus.Finished
+fun TaskCard(task: AgentEvent.Tool, modifier: Modifier = Modifier) {
+    val isFinished = task.state == Tool.State.Failed || task.state == Tool.State.Succeeded
     val taskName = task.name
     val taskKind = when {
         taskName.contains("maps") -> Task.Maps

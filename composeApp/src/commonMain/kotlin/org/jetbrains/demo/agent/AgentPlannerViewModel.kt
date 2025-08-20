@@ -16,22 +16,21 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.coroutines.delay
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentEvent
+import org.jetbrains.demo.AgentEvent.Tool
 import org.jetbrains.demo.JourneyForm
+import org.jetbrains.demo.ProposedTravelPlan
 import org.jetbrains.demo.agent.TimelineItem.*
 import kotlin.jvm.JvmInline
-import kotlin.random.Random
 
 @Stable
 sealed interface TimelineItem {
@@ -44,14 +43,20 @@ sealed interface TimelineItem {
 
     @Stable
     @JvmInline
-    value class Tasks(val tasks: PersistentList<Task>) : TimelineItem
+    value class Tasks(val tasks: PersistentList<AgentEvent.Tool>) : TimelineItem
 
     @Stable
-    data class Task(val id: String, val name: String, val status: TaskStatus)
+    @JvmInline
+    value class PointOfInterest(val ideas: PersistentList<org.jetbrains.demo.PointOfInterest>) : TimelineItem
+
+    @Stable
+    @JvmInline
+    value class ResearchedPointOfInterest(val researchedPointOfInterest: org.jetbrains.demo.ResearchedPointOfInterest) : TimelineItem
+
+    @JvmInline
+    @Stable
+    value class AgentFinished(val proposal: ProposedTravelPlan) : TimelineItem
 }
-
-enum class TaskStatus { Executing, Finished }
-
 
 class AgentPlannerViewModel(
     base: Logger,
@@ -87,7 +92,7 @@ class AgentPlannerViewModel(
                 is AgentEvent.AgentStarted -> items
 
                 is AgentEvent.Message ->
-                    if(event.message.isEmpty()) items
+                    if (event.message.isEmpty()) items
                     else items.mutate { mutable ->
                         val lastMessage = mutable.lastOrNull()
                         if (lastMessage is Messages) {
@@ -98,38 +103,38 @@ class AgentPlannerViewModel(
                         }
                     }
 
-                is AgentEvent.ToolFinished -> {
+                is Tool -> {
                     logger.d { "Tool finished: ${event.id}" }
-                    items.map { item ->
+                    items.mapIndexed { index, item ->
                         when (item) {
-                            is Messages -> item
+                            is Tasks if index == items.lastIndex && (event.state == Tool.State.Running) ->
+                                Tasks(item.tasks.add(event))
+
                             is Tasks -> Tasks(item.tasks.map { task ->
-                                logger.d { "Task: ${task.id} == ${event.id} : ${task.status} -> TaskStatus.Finished" }
-                                if (task.id == event.id) task.copy(status = TaskStatus.Finished) else task
+                                if (task.id == event.id) event else task
                             })
+
+                            is AgentFinished,
+                            is TimelineItem.PointOfInterest,
+                            is TimelineItem.ResearchedPointOfInterest,
+                            is Messages -> item
                         }
                     }
                 }
 
-                is AgentEvent.Tool ->
-                    items.mutate { mutable ->
-                        val lastMessage = mutable.lastOrNull()
-                        val item = Task(event.id, event.name, TaskStatus.Executing)
-                        if (lastMessage is Tasks) {
-                            mutable.removeAt(mutable.lastIndex)
-                            mutable.add(Tasks(lastMessage.tasks.add(item)))
-                        } else {
-                            mutable.add(Tasks(persistentListOf(item)))
-                        }
-                    }
-
-                is AgentEvent.Step1 -> TODO()
-                is AgentEvent.Step2 -> TODO()
+                is AgentEvent.Step1 -> items.add(PointOfInterest(event.ideas.toPersistentList()))
+                is AgentEvent.Step2 -> items.add(ResearchedPointOfInterest(event.researchedPointOfInterest))
+                is AgentEvent.AgentFinished -> items.add(AgentFinished(event.plan))
                 is AgentEvent.AgentError -> TODO()
             }
         }
 
-    inline fun <A, B> PersistentList<A>.map(transform: (A) -> B): PersistentList<B> {
+    private inline fun <A, B> PersistentList<A>.mapIndexed(transform: (Int, A) -> B): PersistentList<B> {
+        var count = 0
+        return map { transform(count++, it) }
+    }
+
+    private inline fun <A, B> PersistentList<A>.map(transform: (A) -> B): PersistentList<B> {
         val size = this.size
         if (size == 0) return persistentListOf()
         val builder = persistentListOf<B>().builder()

@@ -21,6 +21,9 @@ fun Workflow(demo: AgentPlannerViewModel) {
             when (row) {
                 is TimelineItem.Messages -> MessageRow(row.message)
                 is TimelineItem.Tasks -> ToolRow(row.tasks)
+                is TimelineItem.AgentFinished -> TODO()
+                is TimelineItem.PointOfInterest -> TODO()
+                is TimelineItem.ResearchedPointOfInterest -> TODO()
             }
         }
     }

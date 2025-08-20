@@ -1,7 +1,6 @@
 package org.jetbrains.demo
 
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.KSerializer
@@ -62,7 +61,9 @@ sealed interface AgentEvent {
         val id: String,
         val name: String,
         val type: Type,
+        val state: State
     ) : AgentEvent {
+        @Serializable
         enum class Type {
             Maps, Weather, Search, Other;
 
@@ -76,15 +77,12 @@ sealed interface AgentEvent {
                 }
             }
         }
-    }
 
-    @SerialName("tool_result")
-    @Serializable
-    data class ToolFinished(
-        val id: String,
-        val name: String,
-        val success: Boolean
-    ) : AgentEvent
+        @Serializable
+        enum class State {
+            Running, Failed, Succeeded;
+        }
+    }
 
     @SerialName("message")
     @Serializable

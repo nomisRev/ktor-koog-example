@@ -6,10 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
+import org.jetbrains.demo.AgentEvent
 import org.jetbrains.demo.agent.TimelineItem
 
 @Composable
-fun ToolRow(row: ImmutableList<TimelineItem.Task>) {
+fun ToolRow(row: ImmutableList<AgentEvent.Tool>) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)

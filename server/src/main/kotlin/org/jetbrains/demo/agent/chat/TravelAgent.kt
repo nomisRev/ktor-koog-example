@@ -18,6 +18,7 @@ import org.jetbrains.demo.AgentEvent.AgentError
 import org.jetbrains.demo.AgentEvent.AgentStarted
 import org.jetbrains.demo.AgentEvent.Step1
 import org.jetbrains.demo.AgentEvent.Step2
+import org.jetbrains.demo.AgentEvent.Tool
 import org.jetbrains.demo.AppConfig
 import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.agent.chat.strategy.ItineraryIdeas
@@ -103,14 +104,20 @@ private fun StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan>.toDomainEven
             is OnBeforeAgentStarted -> AgentStarted(context.agentId, context.runId)
         }
 
-        is Tool -> when (this) {
+        is StreamingAIAgent.Event.Tool -> when (this) {
             is OnToolCallResult if toolArgs is ItineraryIdeas -> Step1(toolArgs.pointsOfInterest)
             is OnToolCallResult if toolArgs is ResearchedPointOfInterest -> Step2(toolArgs.toDomain())
             is OnToolCallResult if toolArgs is ProposedTravelPlan -> null
-            else -> AgentEvent.Tool(
+            else -> Tool(
                 tool.name,
                 toolCallId!!,
-                AgentEvent.Tool.Type.fromToolName(tool.name)
+                AgentEvent.Tool.Type.fromToolName(tool.name),
+                when(this) {
+                    is StreamingAIAgent.Event.OnToolCall -> Tool.State.Running
+                    is StreamingAIAgent.Event.OnToolCallResult -> Tool.State.Succeeded
+                    is StreamingAIAgent.Event.OnToolCallFailure,
+                    is StreamingAIAgent.Event.OnToolValidationError -> Tool.State.Failed
+                }
             )
         }
 

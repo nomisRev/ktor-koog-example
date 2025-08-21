@@ -14,9 +14,6 @@ import org.jetbrains.demo.PointOfInterest
 data class Test(val example: String) {
 }
 
-
-
-
 @Serializable
 data class ItineraryIdeas(val pointsOfInterest: List<PointOfInterest>) : SubgraphResult {
     override fun toStringDefault(): String =

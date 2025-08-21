@@ -30,7 +30,7 @@ object ResearchedPointOfInterestProvider : ProvideSubgraphResult<ResearchedPoint
     override val argsSerializer = ResearchedPointOfInterest.serializer()
 
     override val descriptor = ToolDescriptor(
-        name = "research_point_of_interest",
+        name = "provide_research_results",
         description = """
             Finish tool to compile final conclusion result of the research done on the points of interest.
             Call to provide the final research conclusion result.

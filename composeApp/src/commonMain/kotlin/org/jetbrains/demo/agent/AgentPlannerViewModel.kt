@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import kotlinx.serialization.StringFormat
@@ -88,6 +89,7 @@ class AgentPlannerViewModel(
             setBody(input)
         }
             .deserialize<AgentEvent>()
+            .onEach { logger.d { "Received event $it" } }
             .aggregateEventsIntoTimeline()
             .collect(_state)
     }
@@ -95,7 +97,6 @@ class AgentPlannerViewModel(
     private fun Flow<AgentEvent>.aggregateEventsIntoTimeline(): Flow<PersistentList<TimelineItem>> =
         scan(persistentListOf()) { items, event ->
             when (event) {
-                is AgentEvent.AgentFinished,
                 is AgentEvent.AgentStarted -> items
 
                 is AgentEvent.Message ->
@@ -111,7 +112,6 @@ class AgentPlannerViewModel(
                     }
 
                 is Tool -> {
-                    logger.d { "Tool finished: ${event}" }
                     val lastOrNull = items.lastOrNull()
                     when (event.state) {
                         Tool.State.Running if lastOrNull is Tasks -> items.mutate { mutable ->

@@ -2,10 +2,24 @@ package org.jetbrains.demo.agent.koog.tools
 
 import ai.koog.agents.core.tools.ToolArgs
 import ai.koog.agents.core.tools.ToolDescriptor
+import ai.koog.agents.core.tools.ToolParameterDescriptor
+import ai.koog.agents.core.tools.ToolParameterType
 import ai.koog.agents.core.tools.ToolResult
+import com.sun.beans.introspect.PropertyInfo
+import com.sun.tools.javac.tree.TreeInfo.args
+import com.xemantic.ai.tool.schema.ArraySchema
+import com.xemantic.ai.tool.schema.BooleanSchema
+import com.xemantic.ai.tool.schema.IntegerSchema
+import com.xemantic.ai.tool.schema.JsonSchema
+import com.xemantic.ai.tool.schema.NumberSchema
+import com.xemantic.ai.tool.schema.ObjectSchema
+import com.xemantic.ai.tool.schema.StringSchema
+import com.xemantic.ai.tool.schema.generator.generateSchema
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.StringFormat
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.StructureKind
 import kotlinx.serialization.serializer
 import ai.koog.agents.core.tools.Tool as KoogTool
 
@@ -37,8 +51,15 @@ class GenericKoogTool<Input, Output>(
         SerializedResult(tool.invoke(args.value), format, tool.outputSerializer)
 
     override val argsSerializer: KSerializer<SerializedToolArgs<Input>> =
-        SerializedToolArgsSerializer(tool.inputSerializer)
+        when (tool.inputSerializer.descriptor.kind) {
+            is PrimitiveKind,
+            is StructureKind.LIST,
+                -> SerializedToolArgs.serializer(tool.inputSerializer)
 
+            else -> SerializedToolArgsSerializer(tool.inputSerializer)
+        }
+
+    @Serializable
     @JvmInline
     value class SerializedToolArgs<Input>(val value: Input) : ToolArgs
 
@@ -50,7 +71,63 @@ class GenericKoogTool<Input, Output>(
         override fun toStringDefault(): String = format.encodeToString(serializer, value)
     }
 
-    override val descriptor: ToolDescriptor = TODO()
+    fun JsonSchema.toToolParameterType(): ToolParameterType = when (this) {
+        is ArraySchema -> ToolParameterType.List(this.items.toToolParameterType())
+        is BooleanSchema -> ToolParameterType.Boolean
+        is IntegerSchema -> ToolParameterType.Integer
+        is NumberSchema -> ToolParameterType.Float
+        is ObjectSchema -> ToolParameterType.Object(
+            properties = this.properties.orEmpty().map { (name, schema) ->
+                ToolParameterDescriptor(
+                    name = name,
+                    description = "TODO: @LLMDescription",
+                    type = schema.toToolParameterType()
+                )
+            },
+            requiredProperties = required.orEmpty(),
+            additionalProperties = this.additionalProperties,
+            additionalPropertiesType = if (this.additionalProperties == true) ToolParameterType.String else null
+        )
+
+        is StringSchema -> ToolParameterType.String
+        is JsonSchema.Const -> ToolParameterType.String
+        is JsonSchema.Ref -> TODO()
+    }
+
+    override val descriptor: ToolDescriptor
+        get() {
+            val schema = generateSchema(tool.inputSerializer.descriptor)
+            when (schema) {
+                is ArraySchema -> ToolParameterType.List(schema.items.toToolParameterType()).asValueTool()
+                is BooleanSchema -> ToolParameterType.Boolean.asValueTool()
+                is NumberSchema -> ToolParameterType.Float.asValueTool()
+                is StringSchema -> ToolParameterType.String.asValueTool()
+                is IntegerSchema -> ToolParameterType.Integer.asValueTool()
+                is ObjectSchema -> ToolDescriptor(
+                    name = tool.inputSerializer.descriptor.serialName,
+                    description = "TODO: @LLMDescription",
+                    requiredParameters = schema.properties.orEmpty().filter { schema.required.orEmpty().contains(it.key) }.map {
+                        ToolParameterDescriptor(
+                            name = it.key,
+                            description = "TODO: @LLMDescription",
+                            type = it.value.toToolParameterType()
+                        )
+                    }
+                )
+                is JsonSchema.Const -> TODO()
+                is JsonSchema.Ref -> TODO()
+            }
+            TODO()
+        }
+
+    private fun ToolParameterType.asValueTool() =
+        ToolDescriptor(
+            name = tool.name,
+            description = tool.description,
+            requiredParameters = listOf(
+                ToolParameterDescriptor(name = "value", description = "TODO: @LLMDescription", this)
+            )
+        )
 }
 
 private class SerializedToolArgsSerializer<Input>(

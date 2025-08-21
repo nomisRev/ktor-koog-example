@@ -1,6 +1,7 @@
 package org.jetbrains.demo.agent.chat
 
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.ext.agent.ProvideSubgraphResult
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.markdown.markdown
@@ -11,6 +12,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
+import io.lettuce.core.KeyScanArgs.Builder.type
 import kotlinx.coroutines.async
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentEvent
@@ -106,26 +108,24 @@ private fun StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan>.toDomainEven
             is OnBeforeAgentStarted -> AgentStarted(context.agentId, context.runId)
         }
 
-        is StreamingAIAgent.Event.Tool -> when (this) {
+
+        is StreamingAIAgent.Event.Tool if tool is ProvideSubgraphResult -> when (this) {
             is OnToolCallResult if toolArgs is ItineraryIdeas -> Step1(toolArgs.pointsOfInterest)
             is OnToolCallResult if toolArgs is ResearchedPointOfInterest -> Step2(toolArgs.toDomain())
-            is OnToolCallResult if toolArgs is ProposedTravelPlan -> AgentEvent.AgentFinished(
-                agentId = "",
-                runId = runId,
-                toolArgs.toDomain()
-            )
-            else -> Tool(
-                tool.name,
-                toolCallId!!,
-                AgentEvent.Tool.Type.fromToolName(tool.name),
-                when(this) {
-                    is StreamingAIAgent.Event.OnToolCall -> Tool.State.Running
-                    is StreamingAIAgent.Event.OnToolCallResult -> Tool.State.Succeeded
-                    is StreamingAIAgent.Event.OnToolCallFailure,
-                    is StreamingAIAgent.Event.OnToolValidationError -> Tool.State.Failed
-                }
-            )
+            else -> null
         }
+
+        is StreamingAIAgent.Event.Tool -> Tool(
+            id = toolCallId!!,
+            name = tool.name,
+            type = Tool.Type.fromToolName(tool.name),
+            state = when (this) {
+                is StreamingAIAgent.Event.OnToolCall -> Tool.State.Running
+                is StreamingAIAgent.Event.OnToolCallResult -> Tool.State.Succeeded
+                is StreamingAIAgent.Event.OnToolCallFailure,
+                is StreamingAIAgent.Event.OnToolValidationError -> Tool.State.Failed
+            }
+        )
 
         is StreamingAIAgent.Event.OnAfterLLMCall -> {
             val input = responses.sumOf { it.metaInfo.inputTokensCount ?: 0 }
@@ -138,6 +138,7 @@ private fun StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan>.toDomainEven
             println("Input tokens: ${inputTokens.load()}, output tokens: ${outputTokens.load()}, total tokens: ${totalTokens.load()}")
             AgentEvent.Message(responses.filterIsInstance<Message.Assistant>().map { it.content })
         }
+
         is OnNodeExecutionError,
         is OnBeforeLLMCall,
         is OnAfterNode,

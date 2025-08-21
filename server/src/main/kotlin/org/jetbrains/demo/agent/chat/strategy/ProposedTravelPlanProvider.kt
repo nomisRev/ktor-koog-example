@@ -38,7 +38,7 @@ object ProposedTravelPlanProvider : ProvideSubgraphResult<ProposedTravelPlan>() 
     override val argsSerializer: KSerializer<ProposedTravelPlan> = ProposedTravelPlan.serializer()
 
     override val descriptor: ToolDescriptor = ToolDescriptor(
-        name = "proposed_travel_plan",
+        name = "provide_proposed_travel_plan",
         description = """
             Finish tool to compile the proposal travel plan.
             Call to provide the proposal travel plan result.

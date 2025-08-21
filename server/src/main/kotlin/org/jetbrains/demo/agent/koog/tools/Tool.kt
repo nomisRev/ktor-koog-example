@@ -36,8 +36,8 @@ class GenericKoogTool<Input, Output>(
     override suspend fun execute(args: SerializedToolArgs<Input>): SerializedResult<Output> =
         SerializedResult(tool.invoke(args.value), format, tool.outputSerializer)
 
-    // TODO write custom serialiser that works for unwrapped Input and remove the surrounding value class.
-    override val argsSerializer: KSerializer<SerializedToolArgs<Input>> = TODO()
+    override val argsSerializer: KSerializer<SerializedToolArgs<Input>> =
+        SerializedToolArgsSerializer(tool.inputSerializer)
 
     @JvmInline
     value class SerializedToolArgs<Input>(val value: Input) : ToolArgs
@@ -51,4 +51,23 @@ class GenericKoogTool<Input, Output>(
     }
 
     override val descriptor: ToolDescriptor = TODO()
+}
+
+private class SerializedToolArgsSerializer<Input>(
+    private val inputSerializer: KSerializer<Input>
+) : KSerializer<GenericKoogTool.SerializedToolArgs<Input>> {
+
+    override val descriptor = inputSerializer.descriptor
+
+    override fun serialize(
+        encoder: kotlinx.serialization.encoding.Encoder,
+        value: GenericKoogTool.SerializedToolArgs<Input>
+    ) {
+        encoder.encodeSerializableValue(inputSerializer, value.value)
+    }
+
+    override fun deserialize(decoder: kotlinx.serialization.encoding.Decoder): GenericKoogTool.SerializedToolArgs<Input> {
+        val input = decoder.decodeSerializableValue(inputSerializer)
+        return GenericKoogTool.SerializedToolArgs(input)
+    }
 }

@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,28 +34,13 @@ import demo.composeapp.generated.resources.fx
 import demo.composeapp.generated.resources.maps
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.demo.AgentEvent
 import org.jetbrains.demo.AgentEvent.Tool
 import kotlin.math.PI
 
-enum class Task(val icon: DrawableResource) {
-    Web(Res.drawable.browser),
-    Database(Res.drawable.database),
-    Maps(Res.drawable.maps),
-    Other(Res.drawable.fx);
-}
-
 @Composable
-fun TaskCard(task: AgentEvent.Tool, modifier: Modifier = Modifier) {
-    val isFinished = task.state == Tool.State.Failed || task.state == Tool.State.Succeeded
-    val taskName = task.name
-    val taskKind = when {
-        taskName.contains("maps") -> Task.Maps
-        taskName.contains("database") -> Task.Database
-        taskName.contains("web") -> Task.Web
-        else -> Task.Other
-    }
-    val resource = painterResource(taskKind.icon)
+fun ToolCard(task: Tool, modifier: Modifier = Modifier) {
+    val isRunning = task.state == Tool.State.Running
+    val resource = painterResource(task.type.toIcon())
 
     val infiniteTransition = rememberInfiniteTransition(label = "TaskCard-${task.id}")
     val progress by infiniteTransition.animateFloat(
@@ -67,9 +53,9 @@ fun TaskCard(task: AgentEvent.Tool, modifier: Modifier = Modifier) {
         label = "ProgressAnimation-${task.id}"
     )
 
-    val progressColor = MaterialTheme.colorScheme.primary
+    val progressColor = colorScheme.primary
     val strokeWidth = 3.dp
-    val borderModifier = if (!isFinished) {
+    val borderModifier = if (isRunning) {
         modifier
             .padding(strokeWidth / 2) // Add padding to ensure border is visible
             .drawWithContent {
@@ -81,10 +67,7 @@ fun TaskCard(task: AgentEvent.Tool, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.then(borderModifier),
         colors = CardDefaults.cardColors(
-            containerColor = if (isFinished)
-                MaterialTheme.colorScheme.surfaceVariant
-            else
-                MaterialTheme.colorScheme.primaryContainer
+            containerColor = if (isRunning) colorScheme.primaryContainer else colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -94,22 +77,24 @@ fun TaskCard(task: AgentEvent.Tool, modifier: Modifier = Modifier) {
         ) {
             Icon(
                 resource,
-                contentDescription = taskName,
-                tint = if (isFinished)
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                else
-                    MaterialTheme.colorScheme.onPrimaryContainer
+                contentDescription = task.name,
+                tint = if (isRunning) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
             )
             Text(
-                text = taskName,
+                text = task.name,
                 style = MaterialTheme.typography.bodySmall,
-                color = if (isFinished)
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                else
-                    MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (isRunning) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
             )
         }
     }
+}
+
+@Composable
+private fun Tool.Type.toIcon(): DrawableResource = when (this) {
+    Tool.Type.Maps -> Res.drawable.maps
+    Tool.Type.Weather -> Res.drawable.database
+    Tool.Type.Search -> Res.drawable.browser
+    Tool.Type.Other -> Res.drawable.fx
 }
 
 // Extension function to draw animated border progress

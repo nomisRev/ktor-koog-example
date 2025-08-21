@@ -7,7 +7,6 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
 import org.jetbrains.demo.AgentEvent
-import org.jetbrains.demo.agent.TimelineItem
 
 @Composable
 fun ToolRow(row: ImmutableList<AgentEvent.Tool>) {
@@ -17,7 +16,7 @@ fun ToolRow(row: ImmutableList<AgentEvent.Tool>) {
     ) {
         row.forEach { task ->
             key(task.id) {
-                TaskCard(task = task)
+                ToolCard(task = task)
             }
         }
     }

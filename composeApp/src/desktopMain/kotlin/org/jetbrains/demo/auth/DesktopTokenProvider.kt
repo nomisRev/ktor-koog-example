@@ -53,6 +53,10 @@ class DesktopTokenProvider(
         }
     }
 
+    init {
+        clearToken()
+    }
+
     override fun getToken(): String? {
         preferences.sync()
         val token = preferences.get(KEY_ID_TOKEN, null)

@@ -6,13 +6,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Travelers(val travelers: List<Traveler>) {
-    fun contribution(): String =
-        if (travelers.isEmpty()) "No information could be found about travelers"
-        else "${travelers.size} travelers:\n" + travelers.joinToString(separator = "\n") {
-            "${it.name}: ${it.about}"
-        }
-}
+data class Travelers(val travelers: List<Traveler>)
 
 @Serializable
 data class PointOfInterest(
@@ -33,7 +27,7 @@ data class ResearchedPointOfInterest(
 )
 
 @Serializable
-data class PointOfInterestFindings(val pointsOfInterest: List<ResearchedPointOfInterest>, )
+data class PointOfInterestFindings(val pointsOfInterest: List<ResearchedPointOfInterest>)
 
 @Serializable
 data class Day(

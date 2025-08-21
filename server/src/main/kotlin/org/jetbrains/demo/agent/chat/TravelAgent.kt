@@ -24,6 +24,7 @@ import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.agent.chat.strategy.ItineraryIdeas
 import org.jetbrains.demo.agent.chat.strategy.ItineraryIdeasProvider
 import org.jetbrains.demo.agent.chat.strategy.ProposedTravelPlan
+import org.jetbrains.demo.agent.chat.strategy.ProposedTravelPlanProvider
 import org.jetbrains.demo.agent.chat.strategy.ResearchedPointOfInterest
 import org.jetbrains.demo.agent.chat.strategy.ResearchedPointOfInterestProvider
 import org.jetbrains.demo.agent.chat.strategy.planner
@@ -58,6 +59,7 @@ fun Application.agent(config: AppConfig) {
                     tools.registry() + ToolRegistry {
                         tool(ItineraryIdeasProvider)
                         tool(ResearchedPointOfInterestProvider)
+                        tool(ProposedTravelPlanProvider)
                     },
                     configureAgent = {
                         it.withSystemPrompt(prompt("travel-assistant-agent") {
@@ -107,7 +109,11 @@ private fun StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan>.toDomainEven
         is StreamingAIAgent.Event.Tool -> when (this) {
             is OnToolCallResult if toolArgs is ItineraryIdeas -> Step1(toolArgs.pointsOfInterest)
             is OnToolCallResult if toolArgs is ResearchedPointOfInterest -> Step2(toolArgs.toDomain())
-            is OnToolCallResult if toolArgs is ProposedTravelPlan -> null
+            is OnToolCallResult if toolArgs is ProposedTravelPlan -> AgentEvent.AgentFinished(
+                agentId = "",
+                runId = runId,
+                toolArgs.toDomain()
+            )
             else -> Tool(
                 tool.name,
                 toolCallId!!,
@@ -132,11 +138,10 @@ private fun StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan>.toDomainEven
             println("Input tokens: ${inputTokens.load()}, output tokens: ${outputTokens.load()}, total tokens: ${totalTokens.load()}")
             AgentEvent.Message(responses.filterIsInstance<Message.Assistant>().map { it.content })
         }
-
+        is OnNodeExecutionError,
         is OnBeforeLLMCall,
         is OnAfterNode,
         is OnBeforeNode,
-        is OnNodeExecutionError,
         is OnStrategyFinished<*, *>,
         is OnStrategyStarted<*, *> -> null
     }

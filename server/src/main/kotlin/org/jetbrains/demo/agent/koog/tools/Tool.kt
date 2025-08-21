@@ -15,6 +15,7 @@ import com.xemantic.ai.tool.schema.NumberSchema
 import com.xemantic.ai.tool.schema.ObjectSchema
 import com.xemantic.ai.tool.schema.StringSchema
 import com.xemantic.ai.tool.schema.generator.generateSchema
+import com.xemantic.ai.tool.schema.generator.jsonSchemaOf
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.StringFormat
@@ -85,39 +86,37 @@ class GenericKoogTool<Input, Output>(
                 )
             },
             requiredProperties = required.orEmpty(),
-            additionalProperties = this.additionalProperties,
-            additionalPropertiesType = if (this.additionalProperties == true) ToolParameterType.String else null
+            additionalProperties = false,
+            additionalPropertiesType = null
         )
 
         is StringSchema -> ToolParameterType.String
         is JsonSchema.Const -> ToolParameterType.String
-        is JsonSchema.Ref -> TODO()
+        is JsonSchema.Ref -> TODO("Impossible, always resolved")
     }
 
     override val descriptor: ToolDescriptor
-        get() {
-            val schema = generateSchema(tool.inputSerializer.descriptor)
-            when (schema) {
-                is ArraySchema -> ToolParameterType.List(schema.items.toToolParameterType()).asValueTool()
-                is BooleanSchema -> ToolParameterType.Boolean.asValueTool()
-                is NumberSchema -> ToolParameterType.Float.asValueTool()
-                is StringSchema -> ToolParameterType.String.asValueTool()
-                is IntegerSchema -> ToolParameterType.Integer.asValueTool()
-                is ObjectSchema -> ToolDescriptor(
-                    name = tool.inputSerializer.descriptor.serialName,
-                    description = "TODO: @LLMDescription",
-                    requiredParameters = schema.properties.orEmpty().filter { schema.required.orEmpty().contains(it.key) }.map {
+        get() = when (val schema =
+            generateSchema(tool.inputSerializer.descriptor, inlineRefs = true, additionalProperties = false)) {
+            is ArraySchema -> ToolParameterType.List(schema.items.toToolParameterType()).asValueTool()
+            is BooleanSchema -> ToolParameterType.Boolean.asValueTool()
+            is NumberSchema -> ToolParameterType.Float.asValueTool()
+            is JsonSchema.Const, is StringSchema -> ToolParameterType.String.asValueTool()
+            is IntegerSchema -> ToolParameterType.Integer.asValueTool()
+            is ObjectSchema -> ToolDescriptor(
+                name = tool.inputSerializer.descriptor.serialName,
+                description = "TODO: @LLMDescription",
+                requiredParameters = schema.properties.orEmpty()
+                    .filter { schema.required.orEmpty().contains(it.key) }.map {
                         ToolParameterDescriptor(
                             name = it.key,
                             description = "TODO: @LLMDescription",
                             type = it.value.toToolParameterType()
                         )
                     }
-                )
-                is JsonSchema.Const -> TODO()
-                is JsonSchema.Ref -> TODO()
-            }
-            TODO()
+            )
+
+            is JsonSchema.Ref -> TODO("Impossible, always resolved")
         }
 
     private fun ToolParameterType.asValueTool() =

@@ -71,6 +71,7 @@ private fun Application.configure(config: AppConfig) {
         oauth(config.auth.issuer, config.auth.clientId, config.auth.secret) {
             loginUri { path("login") }
             logoutUri { path("logout") }
+            refreshUri { path("refresh") }
             redirectUri { path("callback") }
             redirectOnSuccessUri { path("home") }
         }

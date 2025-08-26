@@ -24,9 +24,7 @@ import org.jetbrains.demo.agent.TimelineItem
 fun Workflow(demo: AgentPlannerViewModel) {
     val groupedRows by demo.state.collectAsStateWithLifecycle(persistentListOf())
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(
-            items = groupedRows,
-        ) { row ->
+        items(items = groupedRows) { row ->
             when (row) {
                 is TimelineItem.Messages -> MessageRow(row.message)
                 is TimelineItem.Tasks -> ToolRow(row.tasks)

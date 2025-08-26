@@ -9,7 +9,6 @@ import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.getAs
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.sse.SSE
 import io.ktor.server.websocket.WebSockets
@@ -63,7 +62,7 @@ suspend fun Application.app(config: AppConfig) {
 }
 
 private fun Application.configure(config: AppConfig) {
-    if (developmentMode) install(CallLogging)
+//    if (developmentMode) install(CallLogging)
     install(SSE)
     install(OpenIdConnect) {
         jwk(config.auth.issuer) {
@@ -72,6 +71,7 @@ private fun Application.configure(config: AppConfig) {
         oauth(config.auth.issuer, config.auth.clientId, config.auth.secret) {
             loginUri { path("login") }
             logoutUri { path("logout") }
+            refreshUri { path("refresh") }
             redirectUri { path("callback") }
             redirectOnSuccessUri { path("home") }
         }

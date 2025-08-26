@@ -6,6 +6,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.submitForm
+import io.ktor.http.HttpHeaders.Authorization
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode.Companion.Unauthorized
 import io.ktor.http.Parameters
@@ -169,6 +170,7 @@ class OpenIdConnect(
 
         class OAuthConfig {
             var name: String = "openid-connect-oauth"
+            val extraAuthParameters: MutableMap<String, String> = mutableMapOf()
             var scopes: List<String> = listOf("openid", "profile", "email")
             internal var redirectUri: URLBuilder.() -> Unit = { path("oauth", name, "redirect") }
             internal var refreshUri: URLBuilder.() -> Unit = { path("oauth", name, "refresh") }
@@ -177,8 +179,8 @@ class OpenIdConnect(
             internal var redirectOnSuccessUri: (URLBuilder.() -> Unit)? = null
             internal var postLogoutRedirectUri: (URLBuilder.() -> Unit)? = null
             internal var sessionName: String = "OPENID_SESSION"
-            internal var cookieSessionBuilder: (CookieSessionBuilder<OpenIdConnectPrincipal>.() -> Unit)? =
-                null
+            internal var cookieSessionBuilder: (CookieSessionBuilder<OpenIdConnectPrincipal>.() -> Unit)? = null
+
             internal var handleSuccess: (suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit)? = null
             internal var handleFailure: (suspend RoutingContext.() -> Unit)? = null
             internal var handleLogoutWithEndSession: (suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration, String) -> Unit)? =
@@ -373,45 +375,13 @@ private fun Application.configureAuthentication(
 
     config.oauth.forEach { (issuer, triple) ->
         val (clientId, clientSecret, oauthConfig) = triple
-        val redirectUri = URLBuilder().apply(oauthConfig.redirectUri).build()
-        val loginUri = URLBuilder().apply(oauthConfig.loginUri).build()
-        val redirectOnSuccessUri = URLBuilder().apply(oauthConfig.redirectOnSuccessUri ?: oauthConfig.loginUri).build()
-        val refreshUri = URLBuilder().apply(oauthConfig.refreshUri).build()
-        val logoutUri = URLBuilder().apply(oauthConfig.logoutUri).build()
-        val postLogoutRedirectUri =
-            URLBuilder().apply(oauthConfig.postLogoutRedirectUri ?: oauthConfig.loginUri).build()
-        val handleFailure = oauthConfig.handleFailure ?: { call.respond(Unauthorized) }
-        val handleSuccess = oauthConfig.handleSuccess ?: { principal ->
-            call.sessions.set(principal)
-            call.respondRedirect(redirectOnSuccessUri.fullPath)
-        }
-        val handleLogoutWithEndSession = oauthConfig.handleLogoutWithEndSession ?: { principal, _, endSessionEndpoint ->
-            val absolutePostLogout =
-                "${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}$postLogoutRedirectUri"
-            val redirectUrl = URLBuilder(endSessionEndpoint).apply {
-                parameters.append("id_token_hint", principal.idToken)
-                parameters.append("post_logout_redirect_uri", absolutePostLogout)
-            }.buildString()
-            call.respondRedirect(redirectUrl)
-        }
-        val handleLogoutFallback =
-            oauthConfig.handleLogoutFallback ?: { _, _ -> call.respondRedirect(postLogoutRedirectUri) }
-
         openIdOauth2(
             configurations[issuer]!!,
             oauthConfig,
             client,
             clientId,
             clientSecret,
-            loginUri.fullPath,
-            redirectUri.encodedPathAndQuery,
-            refreshUri.fullPath,
-            logoutUri.fullPath,
-            postLogoutRedirectUri.fullPath,
-            handleSuccess,
-            handleFailure,
-            handleLogoutWithEndSession,
-            handleLogoutFallback
+            oauthConfig,
         )
     }
 
@@ -455,6 +425,7 @@ private class OpenIdConnectOauthAuthenticationProvider(
     private val clientId: String,
     private val clientSecret: String,
     private val configuration: Deferred<OpenIdConfiguration>,
+    oauthConfig: OpenIdConnect.Config.OAuthConfig,
 ) : AuthenticationProvider(config) {
     private val provider = application.async {
         val config = configuration.await()
@@ -474,7 +445,9 @@ private class OpenIdConnectOauthAuthenticationProvider(
                     requestMethod = HttpMethod.Post,
                     clientId = clientId,
                     clientSecret = clientSecret,
-                    defaultScopes = this@OpenIdConnectOauthAuthenticationProvider.scopes.toList()
+                    defaultScopes = this@OpenIdConnectOauthAuthenticationProvider.scopes.toList(),
+                    extraAuthParameters = oauthConfig.extraAuthParameters.entries
+                        .map { (key, value) -> Pair(key, value) }
                 )
             }
         })
@@ -496,16 +469,33 @@ private fun Application.openIdOauth2(
     client: HttpClient,
     clientId: String,
     clientSecret: String,
-    login: String,
-    redirect: String,
-    refresh: String,
-    logout: String,
-    postLogoutRedirect: String,
-    handleCallback: suspend RoutingContext.(OpenIdConnectPrincipal) -> Unit,
-    handleFailure: suspend RoutingContext.() -> Unit,
-    handleLogoutWithEndSession: suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration, String) -> Unit,
-    handleLogoutFallback: suspend RoutingContext.(OpenIdConnectPrincipal, OpenIdConfiguration) -> Unit,
+    oauthConfig: OpenIdConnect.Config.OAuthConfig
 ) {
+    val postLogoutRedirectUri =
+        URLBuilder().apply(oauthConfig.postLogoutRedirectUri ?: oauthConfig.loginUri).build()
+
+    val handleLogoutWithEndSession = oauthConfig.handleLogoutWithEndSession ?: { principal, _, endSessionEndpoint ->
+        val absolutePostLogout =
+            "${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}$postLogoutRedirectUri"
+        val redirectUrl = URLBuilder(endSessionEndpoint).apply {
+            parameters.append("id_token_hint", principal.idToken)
+            parameters.append("post_logout_redirect_uri", absolutePostLogout)
+        }.buildString()
+        call.respondRedirect(redirectUrl)
+    }
+    val redirectUri = URLBuilder().apply(oauthConfig.redirectUri).build()
+    val loginUri = URLBuilder().apply(oauthConfig.loginUri).build()
+    val redirectOnSuccessUri = URLBuilder().apply(oauthConfig.redirectOnSuccessUri ?: oauthConfig.loginUri).build()
+    val refreshUri = URLBuilder().apply(oauthConfig.refreshUri).build()
+    val logoutUri = URLBuilder().apply(oauthConfig.logoutUri).build()
+    val handleFailure = oauthConfig.handleFailure ?: { call.respond(Unauthorized) }
+    val handleSuccess = oauthConfig.handleSuccess ?: { principal ->
+        call.sessions.set(principal)
+        call.respondRedirect(redirectOnSuccessUri.fullPath)
+    }
+    val handleLogoutFallback =
+        oauthConfig.handleLogoutFallback ?: { _, _ -> call.respondRedirect(postLogoutRedirectUri) }
+
     authentication {
         register(
             OpenIdConnectOauthAuthenticationProvider(
@@ -513,19 +503,20 @@ private fun Application.openIdOauth2(
                 name = config.name,
                 config = OpenIdConnectOauthAuthenticationProvider.Config(config.name),
                 httpClient = client,
-                redirect = redirect,
+                redirect = redirectUri.encodedPathAndQuery,
                 scopes = config.scopes.toSet(),
                 clientId = clientId,
                 clientSecret = clientSecret,
                 configuration = configuration,
+                oauthConfig
             )
         )
     }
 
     routing {
         authenticate(config.name) {
-            get(login) {}
-            get(redirect) {
+            get(loginUri.fullPath) {}
+            get(redirectUri.encodedPathAndQuery) {
                 val oauth = call.principal<OAuthAccessTokenResponse.OAuth2>() ?: return@get handleFailure()
                 val idToken = oauth.extraParameters["id_token"] ?: return@get handleFailure()
                 val principal = OpenIdConnectPrincipal(
@@ -533,9 +524,9 @@ private fun Application.openIdOauth2(
                     refreshToken = oauth.refreshToken,
                     userInfo = JWT.decode(idToken).extractUserInfo()
                 )
-                handleCallback(principal)
+                handleSuccess(principal)
             }
-            get(refresh) {
+            get(refreshUri.fullPath) {
                 val refreshToken =
                     (call.sessions.get(config.sessionName) as? OpenIdConnectPrincipal)?.refreshToken
                         ?: return@get call.respond(Unauthorized, "No refresh token found")
@@ -551,7 +542,7 @@ private fun Application.openIdOauth2(
                 call.sessions.set(principal)
             }
         }
-        get(logout) {
+        get(logoutUri.fullPath) {
             val configuration = configuration.await()
             val endSessionEndpoint = configuration.endSessionEndpoint
             val principal = (call.sessions.get(config.sessionName) as? OpenIdConnectPrincipal)
@@ -562,7 +553,7 @@ private fun Application.openIdOauth2(
                 application.log.trace("Logging out with end session endpoint: $endSessionEndpoint")
                 handleLogoutWithEndSession(principal, configuration, endSessionEndpoint)
             } else {
-                application.log.trace("No end session endpoint found, redirecting to post logout redirect uri: $postLogoutRedirect")
+                application.log.trace("No end session endpoint found, redirecting to post logout redirect uri: $postLogoutRedirectUri")
                 handleLogoutFallback(principal, configuration)
             }
         }
@@ -595,13 +586,14 @@ private class OpenIdConnectJwkAndSessionAuthenticationProvider(
             )
             authHeader { call ->
                 if (checkSession) {
-                    call.sessions.get<OpenIdConnectPrincipal>()
-                        ?.idToken
-                        ?.let { HttpAuthHeader.Single("Bearer", it) }
-                        ?: call.request.headers["Authorization"]?.let { parseAuthorizationHeader(it) }
+                    call.request.headers[Authorization]?.let { parseAuthorizationHeader(it) }
+                        ?: call.sessions.get<OpenIdConnectPrincipal>()
+                            ?.idToken
+                            ?.let { HttpAuthHeader.Single("Bearer", it) }
                 } else {
-                    call.request.headers["Authorization"]?.let { parseAuthorizationHeader(it) }
+                    call.request.headers[Authorization]?.let { parseAuthorizationHeader(it) }
                 }
+
             }
             this.validate(jwkConfig.validate)
         })
@@ -632,11 +624,11 @@ private suspend fun refreshOpenIdToken(
     ).body<TokenRefreshResponse>()
 
     val idToken =
-        response.id_token ?: throw IllegalStateException("id_token is missing from the refresh token response")
+        response.idToken ?: throw IllegalStateException("id_token is missing from the refresh token response")
 
     return OpenIdConnectPrincipal(
         idToken = idToken,
-        refreshToken = response.refresh_token
+        refreshToken = response.refreshToken
             ?: refreshToken, // Use the new refresh token if provided, otherwise keep the old one,
         userInfo = JWT.decode(idToken).extractUserInfo()
     )

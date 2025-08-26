@@ -17,8 +17,10 @@ group = "org.jetbrains.demo"
 version = "1.0.0"
 
 kotlin {
-    compilerOptions.optIn.add("kotlin.time.ExperimentalTime")
-    compilerOptions.freeCompilerArgs.add("-Xannotation-default-target=param-property")
+    compilerOptions {
+        optIn.add("kotlin.time.ExperimentalTime")
+        freeCompilerArgs.addAll("-Xcontext-sensitive-resolution", "-Xannotation-default-target=param-property")
+    }
 }
 
 dependencies {
@@ -26,10 +28,10 @@ dependencies {
     implementation(project(":shared"))
     implementation(libs.logback)
     implementation(libs.koog.agents)
+    implementation(libs.tool.schema)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.auth.jwt)
-    implementation(ktorLibs.server.callLogging)
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.client.cio)

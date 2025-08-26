@@ -1,19 +1,20 @@
 package org.jetbrains.demo
 
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SealedSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Serializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.serialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlin.jvm.JvmStatic
 
 typealias SerializableImmutableList<T> = @Serializable(ImmutableListSerializer::class) ImmutableList<T>
 
@@ -34,60 +35,67 @@ class ImmutableListSerializer<T>(private val dataSerializer: KSerializer<T>) : K
 @Serializable
 data class Tool(val id: String, val name: String)
 
+/**
+ * KotlinX Serialization supports sealed interfaces auto-of-the-box.
+ * By default `@JsonClassDiscriminator` will be "message_type", and the `@SerialName` will be
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@JsonClassDiscriminator("event_type")
 @Serializable
 sealed interface AgentEvent {
+    @SerialName("started")
     @Serializable
     data class AgentStarted(val agentId: String, val runId: String) : AgentEvent
 
+    @SerialName("finished")
     @Serializable
-    data class ToolStarted(val ids: SerializableImmutableList<Tool>) : AgentEvent
+    data class AgentFinished(val agentId: String, val runId: String, val plan: ProposedTravelPlan) : AgentEvent
 
+    @SerialName("error")
     @Serializable
-    data class ToolFinished(val ids: SerializableImmutableList<Tool>) : AgentEvent
+    data class AgentError(val agentId: String, val runId: String, val result: String?) : AgentEvent
 
+    @SerialName("tool")
+    @Serializable
+    data class Tool(
+        val id: String,
+        val name: String,
+        val type: Type,
+        val state: State
+    ) : AgentEvent {
+        @Serializable
+        enum class Type {
+            Maps, Weather, Search, Other;
+
+            companion object Companion {
+                @JvmStatic
+                fun fromToolName(name: String): Type = when {
+                    name.startsWith("maps") -> Maps
+                    name.startsWith("weather") -> Weather
+                    name.startsWith("search") -> Search
+                    else -> Other
+                }
+            }
+        }
+
+        @Serializable
+        enum class State {
+            Running, Failed, Succeeded;
+        }
+    }
+
+    @SerialName("message")
     @Serializable
     data class Message(val message: List<String>) : AgentEvent
 
+    @SerialName("step1")
     @Serializable
-    data class AgentFinished(
-        val agentId: String,
-        val runId: String,
-        val result: String
-    ) : AgentEvent
-}
+    data class Step1(val ideas: List<PointOfInterest>) : AgentEvent
 
-@Serializable
-data class AgentGraph(
-    val started: Boolean,
-    val finished: Boolean,
-    val result: String?,
-    val columns: SerializableImmutableList<AgentColumn>,
-) {
-    companion object {
-        fun empty(): AgentGraph = AgentGraph(
-            started = false,
-            finished = false,
-            result = null,
-            columns = persistentListOf(),
-        )
-    }
-}
-
-@Serializable
-
-sealed interface AgentColumn {
+    @SerialName("step2")
     @Serializable
-    data class Single(val node: ToolNode) : AgentColumn
-
-    @Serializable
-    data class Parallel(val nodes: SerializableImmutableList<ToolNode>) : AgentColumn
+    data class Step2(val researchedPointOfInterest: ResearchedPointOfInterest) : AgentEvent
 }
-
-@Serializable
-enum class ToolStatus { Pending, Running, Finished }
-
-@Serializable
-data class ToolNode(val tool: Tool, val status: ToolStatus)
 
 /**
  * Transport types supported by the planner.

@@ -1,3 +1,20 @@
 ### Ask the locally running agent instance a question
-GET http://localhost:8080/plan?question="I need to travel from Copenhagen to Berlin. How can I travel? What clothes should I bring if I leave tomorrow?"
+POST http://localhost:8080/plan?question="I need to travel from Copenhagen to Berlin. How can I travel? What clothes should I bring if I leave tomorrow?"
 Accept: text/event-stream
+Content-Type: application/json
+
+{
+  "fromCity": "Copenhagen",
+  "toCity": "Berlin",
+  "transport": "Car",
+  "startDate": "2025-08-26T08:24:55.876257",
+  "endDate": "2025-09-05T08:24:55.876257",
+  "travelers": [
+    {
+      "id": "MY_ID",
+      "name" : "Simon",
+      "about" : ""
+    }
+  ],
+  "details" : ""
+}

@@ -62,20 +62,19 @@ suspend fun Application.app(config: AppConfig) {
 }
 
 private fun Application.configure(config: AppConfig) {
-//    if (developmentMode) install(CallLogging)
     install(SSE)
-    install(OpenIdConnect) {
-        jwk(config.auth.issuer) {
-            name = "google"
-        }
-        oauth(config.auth.issuer, config.auth.clientId, config.auth.secret) {
-            loginUri { path("login") }
-            logoutUri { path("logout") }
-            refreshUri { path("refresh") }
-            redirectUri { path("callback") }
-            redirectOnSuccessUri { path("home") }
-        }
-    }
+//    install(OpenIdConnect) {
+//        jwk(config.auth.issuer) {
+//            name = "google"
+//        }
+//        oauth(config.auth.issuer, config.auth.clientId, config.auth.secret) {
+//            loginUri { path("login") }
+//            logoutUri { path("logout") }
+//            refreshUri { path("refresh") }
+//            redirectUri { path("callback") }
+//            redirectOnSuccessUri { path("home") }
+//        }
+//    }
     install(WebSockets) {
         pingPeriod = 15.seconds
         timeout = 15.seconds

@@ -51,39 +51,37 @@ fun Application.agent(config: AppConfig) {
 
     routing {
         // TODO allow disabling authentication with a project-wide flag both on backend -and frontend.
-        authenticate("google", optional = developmentMode) {
-            sse("/plan", HttpMethod.Post) {
-                val form = call.receive<JourneyForm>()
-                val tools = deferredTools.await()
-                sseAgent(
-                    planner(tools),
-                    OpenAIModels.CostOptimized.GPT4oMini,
-                    tools.registry() + ToolRegistry {
-                        tool(ItineraryIdeasProvider)
-                        tool(ResearchedPointOfInterestProvider)
-                        tool(ProposedTravelPlanProvider)
-                    },
-                    configureAgent = {
-                        it.withSystemPrompt(prompt("travel-assistant-agent") {
-                            system(markdown {
-                                +"You're an expert travel assistant helping users reach their destination in a reliable way."
-                                header(1, "Task description:")
-                                +"You can only call tools. Figure out the accurate information from calling the google-maps tool, and the weather tool."
-                            })
-                        }).withMaxAgentIterations(100)
-                    },
-                ).run(form)
-                    .collect { event: StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan> ->
-                        val result = event.toDomainEventOrNull()
+        sse("/plan", HttpMethod.Post) {
+            val form = call.receive<JourneyForm>()
+            val tools = deferredTools.await()
+            sseAgent(
+                planner(tools),
+                OpenAIModels.CostOptimized.GPT4oMini,
+                tools.registry() + ToolRegistry {
+                    tool(ItineraryIdeasProvider)
+                    tool(ResearchedPointOfInterestProvider)
+                    tool(ProposedTravelPlanProvider)
+                },
+                configureAgent = {
+                    it.withSystemPrompt(prompt("travel-assistant-agent") {
+                        system(markdown {
+                            +"You're an expert travel assistant helping users reach their destination in a reliable way."
+                            header(1, "Task description:")
+                            +"You can only call tools. Figure out the accurate information from calling the google-maps tool, and the weather tool."
+                        })
+                    }).withMaxAgentIterations(100)
+                },
+            ).run(form)
+                .collect { event: StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan> ->
+                    val result = event.toDomainEventOrNull()
 
-                        if (result != null) {
-                            application.log.debug("Sending AgentEvent: $result")
-                            send(data = Json.encodeToString(AgentEvent.serializer(), result))
-                        } else {
-                            application.log.debug("Ignoring $event")
-                        }
+                    if (result != null) {
+                        application.log.debug("Sending AgentEvent: $result")
+                        send(data = Json.encodeToString(AgentEvent.serializer(), result))
+                    } else {
+                        application.log.debug("Ignoring $event")
                     }
-            }
+                }
         }
     }
 }

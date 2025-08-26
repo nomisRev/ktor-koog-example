@@ -24,12 +24,12 @@ fun HttpClient(
     install(SSE)
     logger.d("BaseURL: ${config.apiBaseUrl})")
     defaultRequest { url(config.apiBaseUrl) }
-    if (tokenProvider != null) {
-        logger.d("TokenProvider is not null, applying header authentication")
-        withAuthBearer(tokenProvider, logger)
-    } else {
-        logger.d("TokenProvider is null, skipping header authentication. (On browser this is expected, we use sessions)")
-    }
+//    if (tokenProvider != null) {
+//        logger.d("TokenProvider is not null, applying header authentication")
+//        withAuthBearer(tokenProvider, logger)
+//    } else {
+        logger.d("TokenProvider is (hardcoded) disabled, skipping header authentication. (On browser this is expected, we use sessions)")
+//    }
 }
 
 private fun HttpClientConfig<*>.withAuthBearer(tokenProvider: TokenProvider, logger: Logger) {

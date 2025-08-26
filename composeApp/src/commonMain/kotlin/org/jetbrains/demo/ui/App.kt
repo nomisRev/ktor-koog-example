@@ -33,8 +33,8 @@ fun App(
     authState: AuthState,
 ) {
     Logger.app.d("App: Composable started")
-    val start = if (authState.hasToken()) Screen.Form else Screen.LogIn
-//    val start = Screen.Form
+//    val start = if (authState.hasToken()) Screen.Form else Screen.LogIn
+    val start = Screen.Form
     val planner = koinViewModel<AgentPlannerViewModel>()
 
     AppTheme {

@@ -53,6 +53,11 @@ fun AgentFinishedRow(proposal: ProposedTravelPlan) {
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 2.dp)
         )
+        Text(
+            text = proposal.plan,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 2.dp)
+        )
         val countries = proposal.countriesVisited
         if (countries.isNotEmpty()) {
             Text(

@@ -27,8 +27,11 @@ dependencies {
     implementation(project(":ktor-openid"))
     implementation(project(":shared"))
     implementation(libs.logback)
+
     implementation(libs.koog.agents)
+    implementation(libs.koog.ktor)
     implementation(libs.tool.schema)
+
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.auth.jwt)
@@ -36,12 +39,14 @@ dependencies {
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.client.cio)
     implementation(ktorLibs.client.contentNegotiation)
-    implementation(libs.koog.ktor)
+
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
+
     implementation(libs.hikari)
     implementation(libs.postgresql)
     implementation(libs.flyway.postgresql)
+
     testImplementation(ktorLibs.server.testHost)
     testImplementation(libs.kotlin.test.junit)
 }

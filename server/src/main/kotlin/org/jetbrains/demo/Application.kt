@@ -17,6 +17,7 @@ import io.ktor.server.websocket.timeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.agent.chat.agent
+import org.jetbrains.demo.agent.koog.ExposedPersistencyStorageProvider
 import org.jetbrains.demo.user.ExposedUserRepository
 import org.jetbrains.demo.user.UserRepository
 import org.jetbrains.demo.user.userRoutes
@@ -49,6 +50,7 @@ fun main() {
 suspend fun Application.app(config: AppConfig) {
     val database = database(config.database)
     val userRepository: UserRepository = ExposedUserRepository(database)
+    val agentPersistency = ExposedPersistencyStorageProvider(database)
     install(Koog) {
         llm {
             openAI(config.apiKey)
@@ -56,7 +58,7 @@ suspend fun Application.app(config: AppConfig) {
     }
 
     configure(config)
-    agent(config)
+    agent(config, agentPersistency)
     website()
     userRoutes(userRepository)
 }

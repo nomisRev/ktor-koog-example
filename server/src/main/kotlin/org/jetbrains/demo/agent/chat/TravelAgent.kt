@@ -2,6 +2,9 @@ package org.jetbrains.demo.agent.chat
 
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.ext.agent.ProvideSubgraphResult
+import ai.koog.agents.snapshot.feature.Persistency
+import ai.koog.agents.snapshot.providers.InMemoryPersistencyStorageProvider
+import ai.koog.agents.snapshot.providers.PersistencyStorageProvider
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.markdown.markdown
@@ -46,7 +49,7 @@ public fun Route.sse(
     handler: suspend ServerSSESession.() -> Unit
 ): Route = route(path, method) { sse(handler) }
 
-fun Application.agent(config: AppConfig) {
+fun Application.agent(config: AppConfig, persistency: PersistencyStorageProvider) {
     val deferredTools = async { tools(config) }
 
     routing {
@@ -71,6 +74,12 @@ fun Application.agent(config: AppConfig) {
                         })
                     }).withMaxAgentIterations(100)
                 },
+                installFeatures = {
+                    install(Persistency) {
+                        storage = persistency
+                        enableAutomaticPersistency = true
+                    }
+                }
             ).run(form)
                 .collect { event: StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan> ->
                     val result = event.toDomainEventOrNull()
@@ -94,7 +103,7 @@ private fun StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan>.toDomainEven
 
     return when (this) {
         is Agent -> when (this) {
-            is OnAgentFinished -> AgentEvent.AgentFinished(
+            is StreamingAIAgent.Event.OnAgentFinished -> AgentEvent.AgentFinished(
                 agentId = agentId,
                 runId = runId,
                 result.toDomain()

@@ -88,6 +88,7 @@ kotlin {
             implementation(libs.kermit)
             implementation(libs.koin.compose.viewmodel.navigation)
             implementation(libs.androidx.navigation.compose)
+            implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.36.0-b02")
             // https://youtrack.jetbrains.com/issue/CMP-8519
             implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1-0.6.x-compat")
             implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.4.0")

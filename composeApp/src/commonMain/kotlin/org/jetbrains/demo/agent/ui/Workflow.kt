@@ -13,6 +13,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mikepenz.markdown.compose.Markdown
+import com.mikepenz.markdown.m3.markdownColor
+import com.mikepenz.markdown.m3.markdownTypography
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.demo.ProposedTravelPlan
 import org.jetbrains.demo.PointOfInterest
@@ -53,9 +56,10 @@ fun AgentFinishedRow(proposal: ProposedTravelPlan) {
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 2.dp)
         )
-        Text(
-            text = proposal.plan,
-            style = MaterialTheme.typography.bodyMedium,
+        Markdown(
+            proposal.plan,
+            markdownColor(),
+            markdownTypography(),
             modifier = Modifier.padding(top = 2.dp)
         )
         val countries = proposal.countriesVisited

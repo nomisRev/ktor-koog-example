@@ -38,7 +38,12 @@ import org.jetbrains.demo.AgentEvent.Tool
 import kotlin.math.PI
 
 @Composable
-fun ToolCard(task: Tool, modifier: Modifier = Modifier) {
+fun ToolCard(
+    task: Tool,
+    modifier: Modifier = Modifier,
+    runningCount: Int? = null,
+    titleOverride: String? = null,
+) {
     val isRunning = task.state == Tool.State.Running
     val resource = painterResource(task.type.toIcon())
 
@@ -70,21 +75,47 @@ fun ToolCard(task: Tool, modifier: Modifier = Modifier) {
             containerColor = if (isRunning) colorScheme.primaryContainer else colorScheme.surfaceVariant
         )
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                resource,
-                contentDescription = task.name,
-                tint = if (isRunning) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = task.name,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isRunning) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
-            )
+        androidx.compose.foundation.layout.Box {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    resource,
+                    contentDescription = titleOverride ?: task.name,
+                    tint = if (isRunning) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = titleOverride ?: task.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isRunning) colorScheme.onPrimaryContainer else colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Badge for running count (only show when >= 2 per user preference)
+            val count = runningCount ?: 0
+            if (count >= 2) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .padding(6.dp)
+                        .align(Alignment.TopEnd)
+                ) {
+                    androidx.compose.material3.Surface(
+                        color = colorScheme.secondary,
+                        contentColor = colorScheme.onSecondary,
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    ) {
+                        Text(
+                            text = count.toString(),
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorScheme.onSecondary
+                        )
+                    }
+                }
+            }
         }
     }
 }

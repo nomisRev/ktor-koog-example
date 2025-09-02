@@ -14,9 +14,26 @@ fun ToolRow(row: ImmutableList<AgentEvent.Tool>) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        row.forEach { task ->
-            key(task.id) {
-                ToolCard(task = task)
+        // Preserve type order by first appearance
+        val typesInOrder = LinkedHashSet<AgentEvent.Tool.Type>()
+        row.forEach { typesInOrder.add(it.type) }
+
+        typesInOrder.forEach { type ->
+            val group = row.filter { it.type == type }
+            if (group.isNotEmpty()) {
+                val runningCount = group.count { it.state == AgentEvent.Tool.State.Running }
+                val representative = if (runningCount > 0) {
+                    group.last { it.state == AgentEvent.Tool.State.Running }
+                } else {
+                    group.last()
+                }
+                key(type.name) {
+                    ToolCard(
+                        task = representative,
+                        runningCount = runningCount,
+                        titleOverride = type.name
+                    )
+                }
             }
         }
     }

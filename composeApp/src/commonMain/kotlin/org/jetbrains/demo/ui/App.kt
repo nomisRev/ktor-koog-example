@@ -4,6 +4,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -58,7 +59,7 @@ fun App(
 
                 composable<Screen.Planner> {
                     Logger.app.d("NavHost: Screen.Planner")
-                    AgentCard(planner)
+                    AgentCard(navController, planner)
                 }
 
                 composable<Screen.Form> {

@@ -2,18 +2,24 @@ package org.jetbrains.demo.agent.chat
 
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.ext.agent.ProvideSubgraphResult
+import ai.koog.ktor.llm
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
+import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
 import ai.koog.prompt.markdown.markdown
 import ai.koog.prompt.message.Message
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.lettuce.core.KeyScanArgs.Builder.type
 import kotlinx.coroutines.async
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentEvent
 import org.jetbrains.demo.AgentEvent.AgentError
@@ -39,6 +45,8 @@ import kotlin.concurrent.atomics.AtomicInt
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.update
 import kotlin.concurrent.atomics.updateAndFetch
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 public fun Route.sse(
     path: String,
@@ -50,7 +58,6 @@ fun Application.agent(config: AppConfig) {
     val deferredTools = async { tools(config) }
 
     routing {
-        // TODO allow disabling authentication with a project-wide flag both on backend -and frontend.
         sse("/plan", HttpMethod.Post) {
             val form = call.receive<JourneyForm>()
             val tools = deferredTools.await()
@@ -65,6 +72,9 @@ fun Application.agent(config: AppConfig) {
                 configureAgent = {
                     it.withSystemPrompt(prompt("travel-assistant-agent") {
                         system(markdown {
+                            "Today's date is ${
+                                Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                            }."
                             +"You're an expert travel assistant helping users reach their destination in a reliable way."
                             header(1, "Task description:")
                             +"You can only call tools. Figure out the accurate information from calling the google-maps tool, and the weather tool."
@@ -134,7 +144,10 @@ private fun StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan>.toDomainEven
             outputTokens.update { it + output }
             totalTokens.updateAndFetch { it + total }
             println("Input tokens: ${inputTokens.load()}, output tokens: ${outputTokens.load()}, total tokens: ${totalTokens.load()}")
-            AgentEvent.Message(responses.filterIsInstance<Message.Assistant>().map { it.content })
+            val responses = responses.filterIsInstance<Message.Assistant>().map { it.content }
+            if (responses.isNotEmpty()) AgentEvent.Message(
+                responses.filterIsInstance<Message.Assistant>().map { it.content })
+            else null
         }
 
         is OnNodeExecutionError,

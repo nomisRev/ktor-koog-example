@@ -13,7 +13,7 @@ import kotlinx.serialization.descriptors.StructureKind
 /**
  * Convert a [SerialDescriptor] to a [ToolDescriptor].
  */
-public fun SerialDescriptor.toolDescription(
+fun SerialDescriptor.toolDescriptor(
     name: String,
     description: String? = null
 ): ToolDescriptor {

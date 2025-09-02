@@ -2,17 +2,18 @@ package org.jetbrains.demo.agent.tools
 
 import ai.koog.agents.core.agent.entity.ToolSelectionStrategy
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.core.tools.reflect.tool
 import ai.koog.agents.core.tools.reflect.tools
 import ai.koog.agents.mcp.McpToolRegistryProvider
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationStopped
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AppConfig
 import org.jetbrains.demo.agent.koog.descriptors
+import org.jetbrains.demo.agent.koog.tools.addDate
 
 data class Tools(
     val duckDuckGoSearchTool: DuckDuckGoSearchTool,
@@ -20,23 +21,28 @@ data class Tools(
     val googleMaps: ToolRegistry,
 ) {
     fun registry() = ToolRegistry {
-        tools(MathTools)
-        tools(weatherTool)
-//        tools(duckDuckGoSearchTool)
+        tools(duckDuckGoSearchTool)
         tools(googleMaps.tools)
+        tools(weatherTool)
+        tool(::addDate)
     }
 
-    fun mathWebAndMaps() = ToolSelectionStrategy.Tools(
+    fun mapsAndWeather() = ToolSelectionStrategy.Tools(
         ToolRegistry {
-//            tools(duckDuckGoSearchTool)
-            tools(MathTools)
+            tools(duckDuckGoSearchTool)
             tools(googleMaps.tools)
+            tools(weatherTool)
+            tool(::addDate)
         }.descriptors()
     )
 
-//    fun web() = ToolSelectionStrategy.Tools(
-//        ToolRegistry { tools(duckDuckGoSearchTool) }.descriptors()
-//    )
+    fun mapsAndWeb() = ToolSelectionStrategy.Tools(
+        ToolRegistry {
+            tools(googleMaps.tools)
+            tools(duckDuckGoSearchTool)
+            tool(::addDate)
+        }.descriptors()
+    )
 }
 
 suspend fun Application.tools(config: AppConfig): Tools {

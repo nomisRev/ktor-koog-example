@@ -6,8 +6,12 @@ import ai.koog.agents.core.tools.annotations.Tool
 import ai.koog.agents.core.tools.reflect.ToolSet
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ResponseException
+import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -24,18 +28,19 @@ class WeatherTool(
         latitude: Double,
         @LLMDescription("The longitude of the location.")
         longitude: Double
-    ): WeatherToolResult = try {
-        println("Fetching weather for Lat: $latitude, Lon: $longitude...")
-        client.get(apiUrl) {
+    ): WeatherToolResult {
+        val response = client.get(apiUrl) {
             parameter("latitude", latitude)
             parameter("longitude", longitude)
             parameter("current_weather", true)
             parameter("timezone", "auto")
-        }.body<WeatherApiResponse>().currentWeather
-    } catch (e: Exception) {
-        println("An error occurred with the API request: ${e.message}")
-        val message = "An error occurred with the API request: ${e.message}"
-        Text(message)
+        }
+        return if (response.status.isSuccess()) {
+            response.body<WeatherApiResponse>().currentWeather
+        } else {
+            val error = response.bodyAsText()
+            Text("An error occurred with the API request. error=$error")
+        }
     }
 
     @LLMDescription("The response from the Open-Meteo API.")

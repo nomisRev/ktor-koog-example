@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.flyway.postgresql)
     testImplementation(ktorLibs.server.testHost)
     testImplementation(libs.kotlin.test.junit)
+    testImplementation("io.ktor:ktor-server-test-host-jvm:3.2.3")
 }
 
 ktor {

@@ -1,11 +1,15 @@
 package org.jetbrains.demo.agent.chat.strategy
 
 import ai.koog.agents.core.agent.context.agentInput
+import ai.koog.agents.core.agent.session.AIAgentLLMWriteSession
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.HistoryCompressionStrategy
+import ai.koog.agents.core.dsl.extension.nodeLLMCompressHistory
 import ai.koog.agents.ext.agent.subgraphWithTask
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.markdown.markdown
+import ai.koog.prompt.message.Message
 import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.PointOfInterest
 import org.jetbrains.demo.PointOfInterestFindings
@@ -17,14 +21,16 @@ private val WORD_COUNT = 200
 
 fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-planner") {
     val pointsOfInterest by subgraphWithTask<JourneyForm, ItineraryIdeas>(
-        toolSelectionStrategy = tools.mathWebAndMaps(),
+        toolSelectionStrategy = tools.mapsAndWeather(),
         llmModel = OpenAIModels.Reasoning.GPT4oMini,
         finishTool = ItineraryIdeasProvider
     ) { input ->
         markdown {
             header(1, "Task description")
-            +"Find points of interest that are relevant to the travel journey and travelers."
-            +"Use mapping tools to consider appropriate order and put a rough date range for each point of interest."
+            bulleted {
+                item("Find points of interest that are relevant to the travel journey and travelers.")
+                item("Use mapping tools to consider appropriate order and put a rough date range for each point of interest.")
+            }
             header(2, "Details")
             bulleted {
                 item("The travelers are ${input.travelers}.")
@@ -35,8 +41,25 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
         }
     }
 
+    val compress by nodeLLMCompressHistory<ItineraryIdeas>(strategy = object : HistoryCompressionStrategy() {
+        override suspend fun compress(
+            llmSession: AIAgentLLMWriteSession,
+            preserveMemory: Boolean,
+            memoryMessages: List<Message>
+        ) {
+            println("#####################################")
+            println("Memory messages: ${memoryMessages.size}")
+            println("    System: ${memoryMessages.filterIsInstance<Message.System>().size}")
+            println("    User: ${memoryMessages.filterIsInstance<Message.User>().size}")
+            println("    Tool: ${memoryMessages.filterIsInstance<Message.Tool>().size}")
+            println("    Tool: ${memoryMessages.filterIsInstance<Message.Assistant>().size}")
+            println("#####################################")
+            WholeHistory.compress(llmSession, preserveMemory, memoryMessages)
+        }
+    })
+
     val researchPointOfInterest by subgraphWithTask<PointOfInterest, ResearchedPointOfInterest>(
-        toolSelectionStrategy = tools.mathWebAndMaps(),
+        toolSelectionStrategy = tools.mapsAndWeb(),
         llmModel = OpenAIModels.Reasoning.GPT4oMini,
         finishTool = ResearchedPointOfInterestProvider
     ) { idea ->
@@ -57,9 +80,9 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
         }
     }
 
-    val researchPoints by parallel(pointsOfInterest, researchPointOfInterest) { it.pointsOfInterest }
+    val researchPoints by parallel(compress, researchPointOfInterest) { it.pointsOfInterest }
     val proposePlan by subgraphWithTask<PointOfInterestFindings, ProposedTravelPlan>(
-        toolSelectionStrategy = tools.mathWebAndMaps(),
+        toolSelectionStrategy = tools.mapsAndWeather(),
         llmModel = OpenAIModels.Reasoning.GPT4oMini,
         finishTool = ProposedTravelPlanProvider
     ) { input ->
@@ -106,7 +129,7 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
             """.trimIndent()
     }
 
-    nodeStart then researchPoints
+    nodeStart then pointsOfInterest then compress then researchPoints
     edge(researchPoints forwardTo proposePlan transformed { PointOfInterestFindings(it.map(ResearchedPointOfInterest::toDomain)) })
     proposePlan then nodeFinish
 }

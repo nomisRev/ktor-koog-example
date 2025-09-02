@@ -22,7 +22,7 @@ data class ResearchedPointOfInterest(
     val pointOfInterest: PointOfInterest,
     val research: String,
     val links: List<InternetResource>,
-    @LLMDescription("Links to images. Links must be the images themselves, not just links to them.")
+    @property:LLMDescription("Links to images. Links must be the images themselves, not just links to them.")
     val imageLinks: List<InternetResource>,
 )
 
@@ -31,8 +31,9 @@ data class PointOfInterestFindings(val pointsOfInterest: List<ResearchedPointOfI
 
 @Serializable
 data class Day(
-    val date: kotlinx.datetime.LocalDate,
-    @LLMDescription("Location where the traveler will stay on this day in Google Maps friendly format 'City,+Country'")
+    @property:LLMDescription("Date in ISO format")
+    val date: LocalDate,
+    @property:LLMDescription("Location where the traveler will stay on this day in Google Maps friendly format 'City,+Country'")
     val locationAndCountry: String,
 ) {
     /**
@@ -49,17 +50,17 @@ data class InternetResource(
 
 @Serializable
 data class ProposedTravelPlan(
-    @LLMDescription("Catchy title appropriate to the travelers and travel brief")
+    @property:LLMDescription("Catchy title appropriate to the travelers and travel brief")
     val title: String,
-    @LLMDescription("Detailed travel plan")
+    @property:LLMDescription("Detailed travel plan")
     val plan: String,
-    @LLMDescription("List of days in the travel plan")
+    @property:LLMDescription("List of days in the travel plan")
     val days: List<Day>,
-    @LLMDescription("Links to images")
+    @property:LLMDescription("Links to images")
     val imageLinks: List<InternetResource>,
-    @LLMDescription("Links to pages with more information about the travel plan")
+    @property:LLMDescription("Links to pages with more information about the travel plan")
     val pageLinks: List<InternetResource>,
-    @LLMDescription("List of country names that the travelers will visit")
+    @property:LLMDescription("List of country names that the travelers will visit")
     val countriesVisited: List<String>,
 )
 

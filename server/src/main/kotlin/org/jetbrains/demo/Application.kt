@@ -1,10 +1,8 @@
 package org.jetbrains.demo
 
 import ai.koog.ktor.Koog
-import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
-import io.ktor.server.auth.openid.OpenIdConnect
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.getAs
 import io.ktor.server.engine.embeddedServer
@@ -21,6 +19,7 @@ import org.jetbrains.demo.user.ExposedUserRepository
 import org.jetbrains.demo.user.UserRepository
 import org.jetbrains.demo.user.userRoutes
 import org.jetbrains.demo.website.website
+import kotlin.String
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable

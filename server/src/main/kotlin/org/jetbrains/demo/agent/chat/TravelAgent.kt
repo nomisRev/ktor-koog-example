@@ -4,8 +4,10 @@ import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.ext.agent.ProvideSubgraphResult
 import ai.koog.ktor.llm
 import ai.koog.prompt.dsl.prompt
+import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
+import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.markdown.markdown
 import ai.koog.prompt.message.Message
 import io.ktor.http.*
@@ -63,7 +65,7 @@ fun Application.agent(config: AppConfig) {
             val tools = deferredTools.await()
             sseAgent(
                 planner(tools),
-                OpenAIModels.CostOptimized.GPT4oMini,
+                AnthropicModels.Sonnet_4,
                 tools.registry() + ToolRegistry {
                     tool(ItineraryIdeasProvider)
                     tool(ResearchedPointOfInterestProvider)
@@ -79,17 +81,14 @@ fun Application.agent(config: AppConfig) {
                             header(1, "Task description:")
                             +"You can only call tools. Figure out the accurate information from calling the google-maps tool, and the weather tool."
                         })
-                    }).withMaxAgentIterations(100)
+                    }).withMaxAgentIterations(300)
                 },
             ).run(form)
                 .collect { event: StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan> ->
                     val result = event.toDomainEventOrNull()
 
                     if (result != null) {
-                        application.log.debug("Sending AgentEvent: $result")
                         send(data = Json.encodeToString(AgentEvent.serializer(), result))
-                    } else {
-                        application.log.debug("Ignoring $event")
                     }
                 }
         }

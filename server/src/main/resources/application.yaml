@@ -7,7 +7,8 @@ app:
     clientId: "$AUTH_CLIENT_ID:ktor-app"
     secret: "$AUTH_CLIENT_SECRET:<empty>"
 
-  apiKey: "$OPENAI_API_KEY:"
+  openAIKey: "$OPENAI_API_KEY:"
+  anthropicKey: "$ANTHROPIC_API_KEY"
 
   weatherApiUrl: "$WEATHER_API_URL:https://api.open-meteo.com/v1/forecast"
 

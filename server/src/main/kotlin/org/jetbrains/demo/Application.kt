@@ -27,7 +27,8 @@ data class AppConfig(
     val host: String,
     val port: Int,
     val auth: AuthConfig,
-    val apiKey: String,
+    val openAIKey: String,
+    val anthropicKey: String,
     val weatherApiUrl: String,
     val database: DatabaseConfig,
 )
@@ -50,7 +51,8 @@ suspend fun Application.app(config: AppConfig) {
     val userRepository: UserRepository = ExposedUserRepository(database)
     install(Koog) {
         llm {
-            openAI(config.apiKey)
+            openAI(config.openAIKey)
+            anthropic(apiKey = config.anthropicKey)
         }
     }
 

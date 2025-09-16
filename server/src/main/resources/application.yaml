@@ -8,7 +8,11 @@ app:
     secret: "$AUTH_CLIENT_SECRET:<empty>"
 
   openAIKey: "$OPENAI_API_KEY:"
-  anthropicKey: "$ANTHROPIC_API_KEY"
+  anthropicKey: "$ANTHROPIC_API_KEY:"
+
+  langfuseUrl: "$LANGFUSE_URL:"
+  langfusePublicKey: "$LANGFUSE_PUBLIC_KEY:"
+  langfuseSecretKey: "$LANGFUSE_SECRET_KEY:"
 
   weatherApiUrl: "$WEATHER_API_URL:https://api.open-meteo.com/v1/forecast"
 

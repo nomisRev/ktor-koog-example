@@ -26,9 +26,10 @@ This project uses the following technologies:
 ### Prerequisites
 
 Before running the application, you need:
-
-1. An OpenAI API key (set as the `OPENAI_API_KEY` environment variable)
-2. Docker installed (for the MCP Gateway container)
+1. Set up environment variables in .env or in the terminal (see [.env.template](.env.template))
+2. Install docker (for the MCP Gateway container)
+3. Run `docker-compose up` to start the database, mcp server, langfuse
+4. Open langfuse in http://localhost:3000/ and sign up, then create a new project and add credentials to .env
 
 ### Running the Application
 

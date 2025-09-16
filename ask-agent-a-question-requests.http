@@ -1,5 +1,5 @@
 ### Ask the locally running agent instance a question
-POST http://localhost:8080/plan?question="I need to travel from Copenhagen to Berlin. How can I travel? What clothes should I bring if I leave tomorrow?"
+POST http://localhost:8080/plan
 Accept: text/event-stream
 Content-Type: application/json
 
@@ -16,5 +16,5 @@ Content-Type: application/json
       "about" : ""
     }
   ],
-  "details" : ""
+  "details" : "I need to travel from Copenhagen to Berlin. How can I travel? What clothes should I bring if I leave tomorrow?"
 }

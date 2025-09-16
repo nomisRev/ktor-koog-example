@@ -2,43 +2,29 @@ package org.jetbrains.demo.agent.chat
 
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.ext.agent.ProvideSubgraphResult
-import ai.koog.ktor.llm
+import ai.koog.agents.features.opentelemetry.feature.OpenTelemetry
+import ai.koog.agents.features.opentelemetry.integration.langfuse.addLangfuseExporter
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
-import ai.koog.prompt.executor.clients.openai.OpenAIModels
-import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
-import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.markdown.markdown
 import ai.koog.prompt.message.Message
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
 import io.ktor.server.request.*
-import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
-import io.lettuce.core.KeyScanArgs.Builder.type
 import kotlinx.coroutines.async
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentEvent
-import org.jetbrains.demo.AgentEvent.AgentError
-import org.jetbrains.demo.AgentEvent.AgentStarted
-import org.jetbrains.demo.AgentEvent.Step1
-import org.jetbrains.demo.AgentEvent.Step2
+import org.jetbrains.demo.AgentEvent.*
 import org.jetbrains.demo.AgentEvent.Tool
 import org.jetbrains.demo.AppConfig
 import org.jetbrains.demo.JourneyForm
-import org.jetbrains.demo.agent.chat.strategy.ItineraryIdeas
-import org.jetbrains.demo.agent.chat.strategy.ItineraryIdeasProvider
-import org.jetbrains.demo.agent.chat.strategy.ProposedTravelPlan
-import org.jetbrains.demo.agent.chat.strategy.ProposedTravelPlanProvider
-import org.jetbrains.demo.agent.chat.strategy.ResearchedPointOfInterest
-import org.jetbrains.demo.agent.chat.strategy.ResearchedPointOfInterestProvider
-import org.jetbrains.demo.agent.chat.strategy.planner
+import org.jetbrains.demo.agent.chat.strategy.*
 import org.jetbrains.demo.agent.koog.ktor.StreamingAIAgent
+import org.jetbrains.demo.agent.koog.ktor.StreamingAIAgent.Event.*
 import org.jetbrains.demo.agent.koog.ktor.sseAgent
 import org.jetbrains.demo.agent.koog.ktor.withMaxAgentIterations
 import org.jetbrains.demo.agent.koog.ktor.withSystemPrompt
@@ -48,7 +34,6 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.update
 import kotlin.concurrent.atomics.updateAndFetch
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 public fun Route.sse(
     path: String,
@@ -83,6 +68,15 @@ fun Application.agent(config: AppConfig) {
                         })
                     }).withMaxAgentIterations(300)
                 },
+                installFeatures = {
+                    install(OpenTelemetry) {
+                        addLangfuseExporter(
+                            langfuseUrl = config.langfuseUrl,
+                            langfusePublicKey = config.langfusePublicKey,
+                            langfuseSecretKey = config.langfuseSecretKey
+                        )
+                    }
+                }
             ).run(form)
                 .collect { event: StreamingAIAgent.Event<JourneyForm, ProposedTravelPlan> ->
                     val result = event.toDomainEventOrNull()

@@ -29,6 +29,9 @@ data class AppConfig(
     val auth: AuthConfig,
     val openAIKey: String,
     val anthropicKey: String,
+    val langfuseUrl: String,
+    val langfusePublicKey: String,
+    val langfuseSecretKey: String,
     val weatherApiUrl: String,
     val database: DatabaseConfig,
 )

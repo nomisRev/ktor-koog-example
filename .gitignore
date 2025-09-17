@@ -18,3 +18,5 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 /server/src/main/resources/web/
 **/kotlin-js-store/**
+.env.template
+.env

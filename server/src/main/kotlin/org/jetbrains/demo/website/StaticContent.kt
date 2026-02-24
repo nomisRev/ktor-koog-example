@@ -10,11 +10,12 @@ import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 
 fun Application.website() = routing {
-    get("/") {
-        val hasSession = call.sessions.get<OpenIdConnectPrincipal>() != null
-        val redirectUrl = if (hasSession) "/home" else "login"
-        call.respondRedirect(redirectUrl)
-    }
+// TODO: re-enable authentication
+//    get("/") {
+//        val hasSession = call.sessions.get<OpenIdConnectPrincipal>() != null
+//        val redirectUrl = if (hasSession) "/home" else "login"
+//        call.respondRedirect(redirectUrl)
+//    }
 
     staticResources("/", "web")
     staticResources("/login", "web")

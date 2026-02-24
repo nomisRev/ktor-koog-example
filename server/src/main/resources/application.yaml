@@ -19,7 +19,7 @@ app:
   database:
     driverClassName: "$DB_DRIVER_CLASS_NAME:org.postgresql.Driver"
     host: "$DB_HOST:localhost"
-    port: "$DATABASE_PORT:5432"
+    port: "$DATABASE_PORT:5433"
     name: "$DB_NAME:ktor_sample"
     username: "$DB_USERNAME:ktor_user"
     password: "$DB_PASSWORD:ktor_password"

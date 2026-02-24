@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.javaToolchains
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
@@ -5,6 +7,10 @@ plugins {
 
 group = "org.jetbrains.demo"
 version = "1.0.0"
+
+kotlin {
+    jvmToolchain(21)
+}
 
 dependencies {
     implementation(ktorLibs.server.auth.jwt)

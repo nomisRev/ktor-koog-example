@@ -430,7 +430,10 @@ private class OpenIdConnectOauthAuthenticationProvider(
     private val provider = application.async {
         val config = configuration.await()
         @Suppress("unused", "invisible_reference")
-        OAuthAuthenticationProvider(OAuthAuthenticationProvider.Config(name).apply {
+        OAuthAuthenticationProvider(OAuthAuthenticationProvider.Config(
+            name,
+            "OpenId Connect"
+        ).apply {
             urlProvider = {
                 val url = "${request.origin.scheme}://${request.host()}:${request.port()}$redirect"
                 application.log.debug("OAuth callback url: $url")
@@ -578,7 +581,7 @@ private class OpenIdConnectJwkAndSessionAuthenticationProvider(
         application.log.debug("Using issuer ${config.issuer} for JWK ${jwkConfig.name} with sessions($checkSession)")
 
         @Suppress("unused", "invisible_reference")
-        JWTAuthenticationProvider(JWTAuthenticationProvider.Config(name).apply {
+        JWTAuthenticationProvider(JWTAuthenticationProvider.Config(name, "OpenID Connect JWT").apply {
             verifier(
                 JwkProviderBuilder(URI(config.jwksUri).toURL()).apply(jwkConfig.jwkBuilder).build(),
                 config.issuer,

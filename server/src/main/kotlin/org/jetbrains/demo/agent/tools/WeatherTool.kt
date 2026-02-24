@@ -1,20 +1,16 @@
 package org.jetbrains.demo.agent.tools
 
-import ai.koog.agents.core.tools.ToolResult
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
 import ai.koog.agents.core.tools.reflect.ToolSet
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.ResponseException
-import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 class WeatherTool(
     private val client: HttpClient,
@@ -55,12 +51,7 @@ class WeatherTool(
     )
 
     @Serializable
-    sealed interface WeatherToolResult : ToolResult {
-        override fun toStringDefault(): String = when (this) {
-            is CurrentWeather -> Json.encodeToString(CurrentWeather.serializer(), this)
-            is Text -> text
-        }
-    }
+    sealed interface WeatherToolResult
 
     @LLMDescription("The current weather for a given location.")
     @Serializable

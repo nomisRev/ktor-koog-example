@@ -12,8 +12,6 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AppConfig
-import org.jetbrains.demo.agent.koog.descriptors
-import org.jetbrains.demo.agent.koog.tools.addDate
 
 data class Tools(
     val duckDuckGoSearchTool: DuckDuckGoSearchTool,
@@ -33,7 +31,7 @@ data class Tools(
             tools(googleMaps.tools)
             tools(weatherTool)
             tool(::addDate)
-        }.descriptors()
+        }.tools.map { it.descriptor }
     )
 
     fun mapsAndWeb() = ToolSelectionStrategy.Tools(
@@ -41,7 +39,7 @@ data class Tools(
             tools(googleMaps.tools)
             tools(duckDuckGoSearchTool)
             tool(::addDate)
-        }.descriptors()
+        }.tools.map { it.descriptor }
     )
 }
 

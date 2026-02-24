@@ -1,5 +1,7 @@
 package org.jetbrains.demo.user
 
+import ai.koog.agents.core.tools.annotations.Tool
+import ai.koog.agents.core.tools.reflect.ToolSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.Column
@@ -21,9 +23,11 @@ object UserTable : LongIdTable("users", "user_id") {
 }
 
 
-interface UserRepository {
+interface UserRepository : ToolSet {
     suspend fun create(subject: String): User
     suspend fun findOrNull(subject: String?): User?
+
+    @Tool
     suspend fun findAll(): List<User>
     suspend fun findByEmail(email: String): User?
     suspend fun create(subj: String, updateUser: UpdateUser): User

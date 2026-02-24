@@ -1,6 +1,5 @@
 package org.jetbrains.demo.agent.tools
 
-import ai.koog.agents.core.tools.ToolResult
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
 import ai.koog.agents.core.tools.reflect.ToolSet
@@ -49,12 +48,7 @@ class DuckDuckGoSearchTool(private val client: HttpClient) : ToolSet {
     }
 
     @Serializable
-    sealed interface SearchToolResult : ToolResult {
-        override fun toStringDefault(): String = when (this) {
-            is SearchResults -> Json.encodeToString(SearchResults.serializer(), this)
-            is ErrorResult -> message
-        }
-    }
+    sealed interface SearchToolResult
 
     @LLMDescription("Successful search results from DuckDuckGo.")
     @Serializable

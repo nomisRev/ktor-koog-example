@@ -1,4 +1,4 @@
-package org.jetbrains.demo.agent.chat.strategy
+package org.jetbrains.demo.agent.chat
 
 import ai.koog.agents.core.agent.context.agentInput
 import ai.koog.agents.core.dsl.builder.forwardTo
@@ -7,22 +7,24 @@ import ai.koog.agents.core.dsl.extension.HistoryCompressionStrategy
 import ai.koog.agents.core.dsl.extension.nodeLLMCompressHistory
 import ai.koog.agents.ext.agent.subgraphWithTask
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
-import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.markdown.markdown
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.supervisorScope
 import org.jetbrains.demo.JourneyForm
 import org.jetbrains.demo.PointOfInterest
 import org.jetbrains.demo.PointOfInterestFindings
-import org.jetbrains.demo.agent.koog.parallel
+import org.jetbrains.demo.ProposedTravelPlan
+import org.jetbrains.demo.ResearchedPointOfInterest
 import org.jetbrains.demo.agent.tools.Tools
 
 private val IMAGE_WIDTH = 400
 private val WORD_COUNT = 200
 
 fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-planner") {
-    val pointsOfInterest by subgraphWithTask<JourneyForm, ItineraryIdeas>(
+    val pointsOfInterest by subgraphWithTask<JourneyForm, List<PointOfInterest>>(
         toolSelectionStrategy = tools.mapsAndWeather(),
         llmModel = AnthropicModels.Sonnet_4,
-        finishTool = ItineraryIdeasProvider
     ) { input ->
         markdown {
             header(1, "Task description")
@@ -40,12 +42,11 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
         }
     }
 
-    val compress by nodeLLMCompressHistory<ItineraryIdeas>(strategy = HistoryCompressionStrategy.WholeHistory)
+    val compress by nodeLLMCompressHistory<List<PointOfInterest>>(strategy = HistoryCompressionStrategy.WholeHistory)
 
     val researchPointOfInterest by subgraphWithTask<PointOfInterest, ResearchedPointOfInterest>(
         toolSelectionStrategy = tools.mapsAndWeb(),
         llmModel = AnthropicModels.Sonnet_4,
-        finishTool = ResearchedPointOfInterestProvider
     ) { idea ->
         val form = agentInput<JourneyForm>()
         markdown {
@@ -64,14 +65,19 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
         }
     }
 
-    val researchPoints by parallel(compress, researchPointOfInterest) { it.pointsOfInterest }
+    val researchPoints by node<List<PointOfInterest>, List<ResearchedPointOfInterest>> { pois ->
+        supervisorScope {
+            pois.map {
+                async { (researchPointOfInterest.execute(this@node, it) as ResearchedPointOfInterest) }
+            }.awaitAll()
+        }
+    }
+
     val proposePlan by subgraphWithTask<PointOfInterestFindings, ProposedTravelPlan>(
         toolSelectionStrategy = tools.mapsAndWeather(),
-        llmModel =AnthropicModels.Sonnet_4,
-        finishTool = ProposedTravelPlanProvider
+        llmModel = AnthropicModels.Sonnet_4,
     ) { input ->
         val form = agentInput<JourneyForm>()
-        // TODO turn this in proper structured data, and render something in the UI.
         """
                 Given the following travel brief, create a detailed plan.
                 Give it a brief, catchy title that doesn't include dates, but may consider season, mood or relate to travelers's interests.
@@ -114,6 +120,6 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
     }
 
     nodeStart then pointsOfInterest then compress then researchPoints
-    edge(researchPoints forwardTo proposePlan transformed { PointOfInterestFindings(it.map(ResearchedPointOfInterest::toDomain)) })
+    edge(researchPoints forwardTo proposePlan transformed { PointOfInterestFindings(it) })
     proposePlan then nodeFinish
 }

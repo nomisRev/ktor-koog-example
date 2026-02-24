@@ -1,26 +1,20 @@
 package org.jetbrains.demo
 
-import ai.koog.ktor.Koog
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
+import io.ktor.server.application.install
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.getAs
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.sse.SSE
-import io.ktor.server.websocket.WebSockets
-import io.ktor.server.websocket.pingPeriod
-import io.ktor.server.websocket.timeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.agent.chat.agent
-import org.jetbrains.demo.user.ExposedUserRepository
-import org.jetbrains.demo.user.UserRepository
 import org.jetbrains.demo.user.userRoutes
 import org.jetbrains.demo.website.website
 import kotlin.String
-import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class AppConfig(
@@ -50,44 +44,17 @@ fun main() {
 }
 
 suspend fun Application.app(config: AppConfig) {
-    val database = database(config.database)
-    val userRepository: UserRepository = ExposedUserRepository(database)
-    install(Koog) {
-        llm {
-            openAI(config.openAIKey)
-            anthropic(apiKey = config.anthropicKey)
-        }
-    }
-
-    configure(config)
-    agent(config)
-    website()
-    userRoutes(userRepository)
-}
-
-private fun Application.configure(config: AppConfig) {
+    val module = module(config)
     install(SSE)
-//    install(OpenIdConnect) {
-//        jwk(config.auth.issuer) {
-//            name = "google"
-//        }
-//        oauth(config.auth.issuer, config.auth.clientId, config.auth.secret) {
-//            loginUri { path("login") }
-//            logoutUri { path("logout") }
-//            refreshUri { path("refresh") }
-//            redirectUri { path("callback") }
-//            redirectOnSuccessUri { path("home") }
-//        }
-//    }
-    install(WebSockets) {
-        pingPeriod = 15.seconds
-        timeout = 15.seconds
-    }
-
     install(ContentNegotiation) {
         json(Json {
             encodeDefaults = true
             isLenient = true
         })
     }
+
+    agent(module.travelAgent)
+    website()
+    userRoutes(module.userRepository)
 }
+

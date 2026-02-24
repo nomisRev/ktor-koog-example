@@ -28,6 +28,7 @@ kotlin {
 dependencies {
     implementation(project(":ktor-openid"))
     implementation(project(":shared"))
+    implementation("ai.koog:agents-features-sql:0.6.2")
     implementation(libs.logback)
     implementation(libs.koog.agents)
     implementation(libs.tool.schema)

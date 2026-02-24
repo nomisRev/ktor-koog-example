@@ -10,7 +10,7 @@ app:
   openAIKey: "$OPENAI_API_KEY:"
   anthropicKey: "$ANTHROPIC_API_KEY:"
 
-  langfuseUrl: "$LANGFUSE_URL:"
+  langfuseUrl: "$LANGFUSE_BASE_URL:"
   langfusePublicKey: "$LANGFUSE_PUBLIC_KEY:"
   langfuseSecretKey: "$LANGFUSE_SECRET_KEY:"
 

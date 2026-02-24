@@ -1,13 +1,22 @@
 package org.jetbrains.demo.agent.chat
 
 import ai.koog.agents.core.agent.context.agentInput
+import ai.koog.agents.core.agent.entity.ToolSelectionStrategy
+import ai.koog.agents.core.agent.session.AIAgentLLMWriteSession
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.dsl.extension.HistoryCompressionStrategy
 import ai.koog.agents.core.dsl.extension.nodeLLMCompressHistory
 import ai.koog.agents.ext.agent.subgraphWithTask
+import ai.koog.agents.ext.agent.subgraphWithVerification
+import ai.koog.agents.snapshot.feature.persistence
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
+import ai.koog.prompt.executor.clients.openai.OpenAIChatParams
+import ai.koog.prompt.executor.clients.openai.OpenAIModels
+import ai.koog.prompt.executor.clients.openai.base.models.ReasoningEffort
 import ai.koog.prompt.markdown.markdown
+import ai.koog.prompt.message.Message
+import ai.koog.prompt.xml.xml
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
@@ -16,10 +25,48 @@ import org.jetbrains.demo.PointOfInterest
 import org.jetbrains.demo.PointOfInterestFindings
 import org.jetbrains.demo.ProposedTravelPlan
 import org.jetbrains.demo.ResearchedPointOfInterest
+import org.jetbrains.demo.agent.PostgresPersistenceStorageProvider
 import org.jetbrains.demo.agent.tools.Tools
 
 private val IMAGE_WIDTH = 400
 private val WORD_COUNT = 200
+
+
+fun test(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-planner") {
+    val pointsOfInterest by subgraphWithTask<JourneyForm, List<PointOfInterest>>(
+        toolSelectionStrategy = tools.mapsAndWeather(),
+        llmModel = AnthropicModels.Opus_4_5,
+    ) { "points of interest prompt" }
+
+    val researchPointOfInterest by subgraphWithTask<List<PointOfInterest>, ResearchedPointOfInterest>(
+        toolSelectionStrategy = tools.mapsAndWeb(),
+        llmModel = AnthropicModels.Sonnet_4_5,
+    ) { "research point of interest prompt" }
+
+    val proposePlan by subgraphWithTask<ResearchedPointOfInterest, ProposedTravelPlan>(
+        toolSelectionStrategy = tools.mapsAndWeather(),
+        llmModel = OpenAIModels.Chat.GPT5_2,
+    ) { "Our proposal plan" }
+
+    val review by subgraphWithVerification<ProposedTravelPlan>(
+        toolSelectionStrategy = ToolSelectionStrategy.NONE,
+        llmModel = OpenAIModels.Chat.GPT5_2,
+        llmParams = OpenAIChatParams(
+            temperature = 0.8,
+            reasoningEffort = ReasoningEffort.HIGH
+        )
+    ) { "Review the proposed travel plan" }
+
+    val fixPlan by subgraphWithTask<String, ProposedTravelPlan>(
+        llmModel = OpenAIModels.Chat.GPT5Codex
+    ) { feedback ->
+        "You must fix the following problems: $feedback"
+    }
+
+    nodeStart then pointsOfInterest then researchPointOfInterest then proposePlan then review
+    edge(review forwardTo nodeFinish onCondition { it.successful } transformed { it.input })
+    edge(review forwardTo fixPlan onCondition { !it.successful } transformed { it.feedback })
+}
 
 fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-planner") {
     val pointsOfInterest by subgraphWithTask<JourneyForm, List<PointOfInterest>>(
@@ -42,11 +89,9 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
         }
     }
 
-    val compress by nodeLLMCompressHistory<List<PointOfInterest>>(strategy = HistoryCompressionStrategy.WholeHistory)
-
     val researchPointOfInterest by subgraphWithTask<PointOfInterest, ResearchedPointOfInterest>(
         toolSelectionStrategy = tools.mapsAndWeb(),
-        llmModel = AnthropicModels.Sonnet_4,
+        llmModel = AnthropicModels.Sonnet_4_5,
     ) { idea ->
         val form = agentInput<JourneyForm>()
         markdown {
@@ -75,7 +120,7 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
 
     val proposePlan by subgraphWithTask<PointOfInterestFindings, ProposedTravelPlan>(
         toolSelectionStrategy = tools.mapsAndWeather(),
-        llmModel = AnthropicModels.Sonnet_4,
+        llmModel = OpenAIModels.Chat.GPT5_2,
     ) { input ->
         val form = agentInput<JourneyForm>()
         """
@@ -119,7 +164,7 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
             """.trimIndent()
     }
 
-    nodeStart then pointsOfInterest then compress then researchPoints
+    nodeStart then pointsOfInterest then researchPoints
     edge(researchPoints forwardTo proposePlan transformed { PointOfInterestFindings(it) })
     proposePlan then nodeFinish
 }

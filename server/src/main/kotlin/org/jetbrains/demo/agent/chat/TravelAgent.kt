@@ -36,12 +36,14 @@ import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.concurrent.atomics.update
 import kotlin.concurrent.atomics.updateAndFetch
 import kotlin.time.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 interface TravelAgent {
-    fun playJourney(form: JourneyForm): Flow<AgentEvent>
-    fun resume(agentId: String): Flow<AgentEvent>
+    fun planJourney(agentId: String, form: JourneyForm): Flow<AgentEvent>
 }
 
+@OptIn(ExperimentalUuidApi::class)
 class KoogTravelAgent(
     private val config: AppConfig,
     private val executor: PromptExecutor,
@@ -49,17 +51,26 @@ class KoogTravelAgent(
     private val users: UserRepository,
     private val storage: PersistenceStorageProvider<*>
 ) : TravelAgent {
-    override fun resume(agentId: String): Flow<AgentEvent> = channelFlow {
-        val checkpoint = storage.getLatestCheckpoint(agentId)
-        // restart playJourney where it left off / crashed
-        // or with a user-initiated manual feedback message
+    val agentId = Uuid.generateV7().toString()
+
+    val agent = AIAgent(
+        id = agentId,
+        promptExecutor = executor,
+        llmModel = AnthropicModels.Sonnet_4,
+    ) { // FeatureContext.() -> Unit
+        install(Persistence) {
+            storage = this@KoogTravelAgent.storage
+            enableAutomaticPersistence = true
+        }
     }
 
-    override fun playJourney(form: JourneyForm): Flow<AgentEvent> = channelFlow {
+    @OptIn(ExperimentalUuidApi::class)
+    override fun planJourney(agentId: String, form: JourneyForm): Flow<AgentEvent> = channelFlow {
         val tools = tools.await()
         AIAgent(
-            executor,
-            AIAgentConfig(
+            id = Uuid.generateV7().toString(),
+            promptExecutor = executor,
+            agentConfig = AIAgentConfig(
                 prompt("travel-assistant-agent") {
                     system(markdown {
                         "Today's date is ${
@@ -73,8 +84,8 @@ class KoogTravelAgent(
                 AnthropicModels.Sonnet_4_5,
                 300,
             ),
-            planner(tools),
-            tools.registry() + ToolRegistry { tools(users.asTools()) },
+            strategy = planner(tools),
+            toolRegistry = tools.registry() + ToolRegistry { tools(users.asTools()) },
         ) {
             install(OpenTelemetry) {
                 addLangfuseExporter(

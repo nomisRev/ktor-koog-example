@@ -5,7 +5,6 @@ import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import io.ktor.server.application.Application
 import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.demo.agent.PostgresPersistenceStorageProvider
 import org.jetbrains.demo.agent.chat.KoogTravelAgent
 import org.jetbrains.demo.agent.chat.TravelAgent

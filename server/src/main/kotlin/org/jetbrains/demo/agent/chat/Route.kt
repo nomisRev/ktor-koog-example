@@ -9,13 +9,17 @@ import io.ktor.server.sse.sse
 import kotlinx.serialization.json.Json
 import org.jetbrains.demo.AgentEvent
 import org.jetbrains.demo.JourneyForm
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 fun Application.agent(agent: TravelAgent) {
     routing {
         route("/plan", HttpMethod.Post) {
             sse {
                 val form = call.receive<JourneyForm>()
-                agent.playJourney(form)
+                val sessionId = call.request.headers["X-Session-Id"] ?: Uuid.generateV7().toString()
+                agent.planJourney(sessionId, form)
                     .collect { send(data = Json.encodeToString(AgentEvent.serializer(), it)) }
             }
         }

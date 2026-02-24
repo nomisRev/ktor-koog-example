@@ -8,6 +8,7 @@ import ai.koog.agents.mcp.McpToolRegistryProvider
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import kotlinx.serialization.json.Json
@@ -61,7 +62,14 @@ private fun Application.httpClient(): HttpClient = HttpClient(CIO) {
             encodeDefaults = true
             ignoreUnknownKeys = true
             allowSpecialFloatingPointValues = true
-        })
+        }, contentType = ContentType.Application.Json)
+        json(Json {
+            prettyPrint = false
+            isLenient = true
+            encodeDefaults = true
+            ignoreUnknownKeys = true
+            allowSpecialFloatingPointValues = true
+        }, contentType = ContentType("application", "x-javascript"))
     }
 }.closeOnStop(this)
 

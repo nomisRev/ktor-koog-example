@@ -10,6 +10,7 @@ import ai.koog.agents.core.dsl.extension.nodeLLMCompressHistory
 import ai.koog.agents.ext.agent.subgraphWithTask
 import ai.koog.agents.ext.agent.subgraphWithVerification
 import ai.koog.agents.snapshot.feature.persistence
+import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
 import ai.koog.prompt.executor.clients.openai.OpenAIChatParams
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
@@ -108,6 +109,28 @@ fun planner(tools: Tools) = strategy<JourneyForm, ProposedTravelPlan>("travel-pl
                 item("Description: ${idea.description}")
             }
         }
+    }
+
+    val compres by nodeLLMCompressHistory<List<PointOfInterest>>(
+        strategy = object : HistoryCompressionStrategy() {
+            override suspend fun compress(
+                llmSession: AIAgentLLMWriteSession,
+                memoryMessages: List<Message>
+            ) {
+                TODO()
+            }
+        }
+    )
+
+    val customCompress by node<List<PointOfInterest>, List<PointOfInterest>> { pointsOfInterest ->
+        val form = agentInput<JourneyForm>()
+        llm.writeSession {
+            val existingHistory = prompt
+            prompt = prompt("replace") {
+                TODO("Construct entire new history from scratch")
+            }
+        }
+        pointsOfInterest
     }
 
     val researchPoints by node<List<PointOfInterest>, List<ResearchedPointOfInterest>> { pois ->
